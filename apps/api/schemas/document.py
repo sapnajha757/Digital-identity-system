@@ -72,14 +72,54 @@ class GraphNode(BaseModel):
     id: str
     label: str
     type: str
+    properties: dict | None = None
 
 
 class GraphEdge(BaseModel):
     source: str
     target: str
     relationship: str
+    confidence: float | None = 1.0
+    reason: str | None = None
+    metadata: dict | None = None
+    timestamp: str | None = None
 
 
 class GraphResponse(BaseModel):
     nodes: list[GraphNode]
     edges: list[GraphEdge]
+
+
+class InsightItem(BaseModel):
+    type: str  # e.g., gaps, skills, certifications, trends, improvements
+    title: str
+    description: str
+    impact: Literal["high", "medium", "low"]
+    actionable_step: str
+
+
+class InsightsResponse(BaseModel):
+    insights: list[InsightItem]
+    updated_at: datetime
+
+
+class CareerTwin(BaseModel):
+    current_role_trend: str
+    strongest_skills: list[str]
+    fastest_growing_skill: str
+    career_direction: str
+    experience_summary: str
+    recommended_next_skill: str
+    recommended_next_project: str
+    career_readiness: int  # 0-100
+
+
+class DashboardMetricsResponse(BaseModel):
+    identity_score: int
+    score_breakdown: dict
+    career_twin: CareerTwin
+    ai_summary_narrative: str
+    stats: dict
+    updated_at: datetime
+
+

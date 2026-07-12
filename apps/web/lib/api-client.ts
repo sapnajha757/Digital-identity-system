@@ -55,10 +55,62 @@ export interface ChatResponse {
   sources: SearchResultItem[];
 }
 
-export interface GraphResponse {
-  nodes: { id: string; label: string; type: string }[];
-  edges: { source: string; target: string; relationship: string }[];
+export interface GraphNode {
+  id: string;
+  label: string;
+  type: string;
+  properties?: Record<string, any>;
 }
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  relationship: string;
+  confidence?: number;
+  reason?: string;
+  metadata?: Record<string, any>;
+  timestamp?: string;
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface InsightItem {
+  type: string;
+  title: string;
+  description: string;
+  impact: "high" | "medium" | "low";
+  actionable_step: string;
+}
+
+export interface InsightsResponse {
+  insights: InsightItem[];
+  updated_at: string;
+}
+
+export interface CareerTwin {
+  current_role_trend: string;
+  strongest_skills: string[];
+  fastest_growing_skill: string;
+  career_direction: string;
+  experience_summary: string;
+  recommended_next_skill: string;
+  recommended_next_project: string;
+  career_readiness: number;
+}
+
+export interface DashboardMetricsResponse {
+  identity_score: number;
+  score_breakdown: Record<string, number>;
+  career_twin: CareerTwin;
+  ai_summary_narrative: string;
+  stats: Record<string, number>;
+  updated_at: string;
+}
+
+
 
 export const apiClient = {
   async uploadDocument(file: File): Promise<{ document_id: string; status: string }> {
@@ -108,6 +160,18 @@ export const apiClient = {
   async getGraph(): Promise<GraphResponse> {
     const res = await fetch(`${API_BASE_URL}/graph`, { headers: await authHeaders() });
     if (!res.ok) throw new Error(`Failed to load graph: ${res.statusText}`);
+    return res.json();
+  },
+
+  async getInsights(): Promise<InsightsResponse> {
+    const res = await fetch(`${API_BASE_URL}/insights`, { headers: await authHeaders() });
+    if (!res.ok) throw new Error(`Failed to load insights: ${res.statusText}`);
+    return res.json();
+  },
+
+  async getDashboardMetrics(): Promise<DashboardMetricsResponse> {
+    const res = await fetch(`${API_BASE_URL}/dashboard/metrics`, { headers: await authHeaders() });
+    if (!res.ok) throw new Error(`Failed to load dashboard metrics: ${res.statusText}`);
     return res.json();
   },
 };

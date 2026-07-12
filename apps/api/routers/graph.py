@@ -30,13 +30,32 @@ async def get_knowledge_graph(user: CurrentUser = Depends(current_user)):
             for node in (n, m):
                 node_id = str(node.get("id"))
                 if node_id not in nodes:
+                    # Collect all node properties
+                    node_props = dict(node.items()) if hasattr(node, "items") else {}
                     nodes[node_id] = GraphNode(
                         id=node_id,
                         label=node.get("name", node_id),
                         type=list(node.labels)[0] if node.labels else "Unknown",
+                        properties=node_props,
                     )
+            
+            # Map edge attributes
+            edge_props = dict(r.items()) if hasattr(r, "items") else {}
+            confidence = edge_props.pop("confidence", 1.0)
+            reason = edge_props.pop("reason", "Direct relationship")
+            timestamp = edge_props.pop("timestamp", None)
+            
             edges.append(
-                GraphEdge(source=str(n.get("id")), target=str(m.get("id")), relationship=r.type)
+                GraphEdge(
+                    source=str(n.get("id")),
+                    target=str(m.get("id")),
+                    relationship=r.type,
+                    confidence=confidence,
+                    reason=reason,
+                    metadata=edge_props,
+                    timestamp=timestamp,
+                )
             )
 
     return GraphResponse(nodes=list(nodes.values()), edges=edges)
+

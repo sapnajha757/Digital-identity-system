@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from db.neo4j import close_driver
 from db.qdrant import ensure_collection
-from routers import chat, documents, graph, search, timeline
+from routers import chat, documents, graph, search, timeline, insights, dashboard
 
 settings = get_settings()
 
@@ -44,6 +44,9 @@ app.include_router(search.router)
 app.include_router(timeline.router)
 app.include_router(graph.router)
 app.include_router(chat.router)
+app.include_router(insights.router)
+app.include_router(dashboard.router)
+
 
 
 @app.get("/health")

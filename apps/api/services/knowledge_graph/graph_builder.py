@@ -1,14 +1,5 @@
-"""
-Builds knowledge graph relationships for a single document, derived from
-its categories + extracted skill/technology entities. Neo4j nodes store
-minimal properties (id, name, owner_id) only — full details are always
-fetched from Postgres by id, per the architecture's no-duplication rule.
-
-Cross-document relationships (e.g. Project -> Internship inferred from
-chronology across multiple documents) are intentionally out of scope for
-a single-document write — see docs/architecture.md "Future improvements".
-"""
 import uuid
+from datetime import datetime, timezone
 
 from db.neo4j import get_session
 
@@ -73,6 +64,7 @@ def _write_graph(
 ):
     doc_id = str(document_id)
     event_date_str = str(event_date) if event_date else None
+    timestamp = datetime.now(timezone.utc).isoformat()
 
     tx.run(
         """
@@ -93,11 +85,13 @@ def _write_graph(
                 MERGE (o:Organization {name: $org_name, owner_id: $owner_id})
                 WITH o
                 MATCH (d:Document {id: $doc_id})
-                MERGE (d)-[:AT_ORGANIZATION]->(o)
+                MERGE (d)-[r:AT_ORGANIZATION]->(o)
+                SET r.confidence = 1.0, r.reason = "Extracted association with organization", r.timestamp = $timestamp
                 """,
                 org_name=org_name,
                 owner_id=owner_id,
                 doc_id=doc_id,
+                timestamp=timestamp,
             )
 
     for category in categories:
@@ -111,12 +105,14 @@ def _write_graph(
             SET n.owner_id = $owner_id, n.name = $name, n.date = $date
             WITH n
             MATCH (d:Document {{id: $doc_id}})
-            MERGE (d)-[:REPRESENTS]->(n)
+            MERGE (d)-[r:REPRESENTS]->(n)
+            SET r.confidence = 1.0, r.reason = "Primary category representation", r.timestamp = $timestamp
             """,
             doc_id=doc_id,
             owner_id=owner_id,
             name=original_filename,
             date=event_date_str,
+            timestamp=timestamp,
         )
 
         relationship = CATEGORY_RELATIONSHIP_RULES.get(category)
@@ -124,27 +120,47 @@ def _write_graph(
             continue
 
         for skill_name in skill_entities:
+            # Determine single doc relationship metadata
+            confidence = 0.85
+            reason = f"Skill extracted from {category[:-1]} text"
+            if relationship == "GRANTS":
+                confidence = 0.95
+                reason = "Certificate explicitly certifies skill"
+            elif relationship == "DEMONSTRATES":
+                confidence = 0.80
+                reason = "Achievement demonstrates skill"
+
             tx.run(
                 f"""
                 MERGE (s:Skill {{name: $skill_name, owner_id: $owner_id}})
                 WITH s
                 MATCH (n:{node_label} {{id: $doc_id}})
-                MERGE (n)-[:{relationship}]->(s)
+                MERGE (n)-[r:{relationship}]->(s)
+                SET r.confidence = $confidence, r.reason = $reason, r.timestamp = $timestamp
                 """,
                 skill_name=skill_name,
                 owner_id=owner_id,
                 doc_id=doc_id,
+                confidence=confidence,
+                reason=reason,
+                timestamp=timestamp,
             )
 
 
 def _enrich_relationships(tx, owner_id: str):
+    timestamp = datetime.now(timezone.utc).isoformat()
+
     # 1. (Certificate)-[:VALIDATES_SKILL_FOR]->(Project)
     tx.run(
         """
         MATCH (c:Certificate {owner_id: $owner_id})-[:GRANTS]->(s:Skill)<-[:USED_IN]-(p:Project {owner_id: $owner_id})
-        MERGE (c)-[:VALIDATES_SKILL_FOR]->(p)
+        MERGE (c)-[r:VALIDATES_SKILL_FOR]->(p)
+        SET r.confidence = 0.90, 
+            r.reason = "Certificate validates skill (" + s.name + ") used in Project", 
+            r.timestamp = $timestamp
         """,
         owner_id=owner_id,
+        timestamp=timestamp,
     )
 
     # 2. (Project)-[:RELATED_PROJECT]->(Project) if they share 2+ skills
@@ -155,9 +171,14 @@ def _enrich_relationships(tx, owner_id: str):
         WITH p1, p2, count(s) as shared_count, collect(s.name) as shared_skills
         WHERE shared_count >= 2
         MERGE (p1)-[r:RELATED_PROJECT]-(p2)
-        SET r.shared_skills_count = shared_count, r.shared_skills = shared_skills
+        SET r.shared_skills_count = shared_count, 
+            r.shared_skills = shared_skills,
+            r.confidence = CASE WHEN shared_count * 0.2 > 0.95 THEN 0.95 ELSE shared_count * 0.2 END,
+            r.reason = "Projects share " + shared_count + " skills",
+            r.timestamp = $timestamp
         """,
         owner_id=owner_id,
+        timestamp=timestamp,
     )
 
     # 3. (Project/Achievement)-[:PART_OF_INTERNSHIP]->(Internship) via shared organization
@@ -167,8 +188,13 @@ def _enrich_relationships(tx, owner_id: str):
         MATCH (d2:Document {owner_id: $owner_id})-[:REPRESENTS]->(i:Internship)
         WHERE (p:Project OR p:Achievement)
         MATCH (d1)-[:AT_ORGANIZATION]->(o:Organization)<-[:AT_ORGANIZATION]-(d2)
-        MERGE (p)-[:PART_OF_INTERNSHIP]->(i)
+        MERGE (p)-[r:PART_OF_INTERNSHIP]->(i)
+        SET r.confidence = 0.95, 
+            r.reason = "Project/Achievement completed at same organization (" + o.name + ") as Internship", 
+            r.timestamp = $timestamp
         """,
         owner_id=owner_id,
+        timestamp=timestamp,
     )
+
 
