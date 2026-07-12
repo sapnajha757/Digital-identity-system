@@ -1,19 +1,22 @@
-"""
-Returns the knowledge graph (nodes + edges) for a user, in a shape
-React Flow can render directly. Graph writes happen in Module 3
-(services/knowledge_graph); this only reads from Neo4j.
-"""
+import uuid
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.security import CurrentUser, current_user
 from db.neo4j import get_session
+from db.postgres import get_db
+from models.document import User
 from schemas.document import GraphEdge, GraphNode, GraphResponse
 
 router = APIRouter(prefix="/graph", tags=["graph"])
 
 
 @router.get("", response_model=GraphResponse)
-async def get_knowledge_graph(user: CurrentUser = Depends(current_user)):
+async def get_knowledge_graph(
+    db: AsyncSession = Depends(get_db),
+    user: CurrentUser = Depends(current_user),
+):
     query = """
     MATCH (n)-[r]->(m)
     WHERE n.owner_id = $owner_id AND m.owner_id = $owner_id
@@ -23,8 +26,13 @@ async def get_knowledge_graph(user: CurrentUser = Depends(current_user)):
     nodes: dict[str, GraphNode] = {}
     edges: list[GraphEdge] = []
 
+    # Get the user.id from Postgres
+    result = await db.execute(select(User).where(User.auth_id == uuid.UUID(user.auth_id)))
+    db_user = result.scalar_one_or_none()
+    owner_id = str(db_user.id) if db_user else user.auth_id
+
     with get_session() as session:
-        records = session.run(query, owner_id=user.auth_id)
+        records = session.run(query, owner_id=owner_id)
         for record in records:
             n, r, m = record["n"], record["r"], record["m"]
             for node in (n, m):
