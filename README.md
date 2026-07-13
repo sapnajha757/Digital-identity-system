@@ -161,3 +161,36 @@ IdentityOS has a built-in **Demo Mode Preset** toggle in the sidebar. This allow
 - **Federated Verification**: Cryptographic signing of credential verification paths.
 - **Cross-User Graph Linkages**: Network mappings across teams and companies to discover optimal project pairings.
 - **Multimodal Extraction**: Direct parsing of video credentials and project walkthrough clips.
+
+---
+
+## 📖 Hackathon Story
+
+IdentityOS was conceived in a 48-hour sprint to solve the "lost folders" problem of academic and career credential management. We wanted to move beyond raw storage systems and build a cognitive, AI-native workspace. By orchestrating Postgres (facts), Qdrant (vectors), and Neo4j (graph relations), we proved that an AI agent could dynamically parse unstructured CVs/certificates, verify credentials completeness, and map out career trends in real-time.
+
+---
+
+## 🎭 Final Demo Script (5-Minute Walkthrough)
+
+### 1. Landing Page (0:00 - 0:45)
+- **Visuals**: Futuristic developer HUD theme with Aurora flow orbs.
+- **Narrative**: Explain the core thesis: "You'll never have to search through folders again. IdentityOS already understands your journey." Highlight the key stack (Next.js, FastAPI, Postgres, Qdrant, Neo4j).
+
+### 2. Login & Demo Mode Preset (0:45 - 1:15)
+- **Actions**: Click **⚡ Explore Demo Preset** on the landing page or login view to instantly bypass signup.
+- **Visuals**: Instantly loads pre-populated portfolio projects, AWS certifications, and internship records.
+
+### 3. Ingestion & AI Processing (1:15 - 2:00)
+- **Actions**: Upload a mock CV or certification.
+- **Visuals**: Watch the HUD compilation overlay cycle: "Analyzing Relationships...", "Knowledge Graph Synchronized", "Career Twin Updated", "Timeline Refreshed".
+
+### 4. Interactive Dashboard (2:00 - 2:45)
+- **Visuals**: AI Narrative Synoptic Box, capability score dial, emerging technical trend vectors, and document quality indicators.
+- **Narrative**: Discuss how the Daily AI Briefing updates dynamically based on the uploaded certificates.
+
+### 5. Living Knowledge Graph & Timeline (2:45 - 3:45)
+- **Visuals**: Hover over nodes to see connected paths glow; select nodes to view matching metrics and reasoning details. Scroll the timeline to see chronologically ordered career achievements.
+
+### 6. Recruiter Presentation Mode & Export (3:45 - 5:00)
+- **Actions**: Toggle presentation mode in the sidebar, open the printable view, export a JSON/CSV dossier of credentials.
+- **Statement**: Conclude with: *"IdentityOS doesn't simply organize files. It understands, connects, explains, predicts, and evolves your entire digital journey."*
