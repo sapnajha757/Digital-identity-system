@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { supabase } from "@/lib/api-client";
 
@@ -64,14 +65,15 @@ const LANDING_FEATURES = [
 
 // INSIGHTS
 const INSIGHTS_ITEMS = [
-  "Knowledge Graph discovered 8 new credentials relationships.",
-  "Profile completeness increased to 94% with Google Intern document.",
-  "AI Career Twin: Capable of lead architect positions in ML infrastructures.",
-  "System recommendation: Kubernetes certification will unlock high-tier job matches.",
+  "Knowledge Graph discovered 148 credentials relationships.",
+  "Profile completeness increased to 92% with Resume.pdf.",
+  "AI Career Twin: Capable of lead architect positions in AI systems.",
+  "System recommendation: Advanced MLOps tracking will unlock high-tier job matches.",
   "Telemetry verified: All resume skills backed by PDF certificate sources."
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -83,6 +85,17 @@ export default function LandingPage() {
   const [demoGraph, setDemoGraph] = useState<any>({ nodes: [], edges: [] });
   const [demoScore, setDemoScore] = useState(0);
   const [demoTwin, setDemoTwin] = useState<string>("");
+
+  const handleExploreDemo = () => {
+    localStorage.setItem("dis_demo_mode", "true");
+    localStorage.setItem("dis_session", JSON.stringify({
+      access_token: "mock-token",
+      user: { email: "demo@identityos.local" }
+    }));
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("demo-mode-changed"));
+    router.push("/dashboard");
+  };
 
   // UI Interactive Elements
   const [activeArch, setActiveArch] = useState<string | null>(null);
@@ -147,8 +160,8 @@ export default function LandingPage() {
     const run = async () => {
       // Step 1: Upload
       await sleep(1500);
-      setDemoFiles(["Resume_Sapna_Jha.pdf"]);
-      setDemoLog((prev) => [...prev, "📥 Uploaded: Resume_Sapna_Jha.pdf", "⚙️ Initializing file ingest workers..."]);
+      setDemoFiles(["Resume.pdf"]);
+      setDemoLog((prev) => [...prev, "📥 Uploaded: Resume.pdf", "⚙️ Initializing file ingest workers..."]);
       setDemoStep(2);
 
       // Step 2: OCR Parsing
@@ -158,12 +171,12 @@ export default function LandingPage() {
 
       // Step 3: LLM Entities Mapping
       await sleep(2200);
-      setDemoLog((prev) => [...prev, "🧠 Querying LLM Extraction pipelines...", "💡 Identified: 18 Skills (Python, FastAPI, AWS...)", "💡 Identified: Google Internship (SWE Intern)", "💡 Identified: AWS Cloud Practitioner Cert"]);
+      setDemoLog((prev) => [...prev, "🧠 Querying LLM Extraction pipelines...", "💡 Identified: 6 Skills (Python, React, FastAPI...)", "💡 Identified: ML Internship", "💡 Identified: AWS Certificate"]);
       setDemoGraph({
         nodes: [
-          { id: "1", label: "Sapna Jha", type: "user" },
-          { id: "2", label: "Google", type: "org" },
-          { id: "3", label: "AWS Cert", type: "cert" }
+          { id: "1", label: "Alex Morgan", type: "user" },
+          { id: "2", label: "ML Internship", type: "org" },
+          { id: "3", label: "AWS Certificate", type: "cert" }
         ],
         edges: [
           { source: "1", target: "2", type: "INTERNED_AT" },
@@ -174,23 +187,23 @@ export default function LandingPage() {
 
       // Step 4: Knowledge Graph Growth
       await sleep(2200);
-      setDemoLog((prev) => [...prev, "🕸️ Syncing relationships to Neo4j graph schemas...", "✓ Created 12 relationships", "✓ Linked PyTorch skill to Google Internship model", "✓ Built bidirectional project paths"]);
+      setDemoLog((prev) => [...prev, "🕸️ Syncing relationships to Neo4j graph schemas...", "✓ Created 11 relationships", "✓ Linked Machine Learning skill to ML Internship model", "✓ Built bidirectional project paths"]);
       setDemoGraph((prev: any) => ({
-        nodes: [...prev.nodes, { id: "4", label: "PyTorch", type: "skill" }, { id: "5", label: "FastAPI", type: "skill" }],
+        nodes: [...prev.nodes, { id: "4", label: "Machine Learning", type: "skill" }, { id: "5", label: "FastAPI", type: "skill" }],
         edges: [...prev.edges, { source: "2", target: "4", type: "USED" }, { source: "1", target: "5", type: "EXPERT_IN" }]
       }));
       setDemoStep(5);
 
       // Step 5: Scoring update
       await sleep(1800);
-      setDemoLog((prev) => [...prev, "📈 Running metrics scoring validation...", "✓ Profile completeness calculated at 94%", "✓ Credentials verification trust: 90%"]);
-      setDemoScore(94);
+      setDemoLog((prev) => [...prev, "📈 Running metrics scoring validation...", "✓ Profile completeness calculated at 92%", "✓ Credentials verification trust: 90%"]);
+      setDemoScore(92);
       setDemoStep(6);
 
       // Step 6: Narrative / Career Twin
       await sleep(2000);
-      setDemoLog((prev) => [...prev, "👥 Synthesizing Career Twin Persona...", "✓ Generated role analysis", "✓ Computed recommended next skills: Kubernetes"]);
-      setDemoTwin("Sapna Jha is a qualified ML and Graph systems specialist with proven competencies in Neo4j, Qdrant, and Python. Capable of building high-performance systems.");
+      setDemoLog((prev) => [...prev, "👥 Synthesizing Career Twin Persona...", "✓ Generated role analysis", "✓ Computed recommended next skills: Advanced MLOps"]);
+      setDemoTwin("Alex Morgan is a talented AI Engineer specializing in end-to-end ML integration, backend design, and frontend interfaces. Verified documents validate expert proficiency in Python, React, FastAPI, Docker, and PostgreSQL databases.");
       setDemoStep(7);
 
       // Complete
@@ -314,11 +327,17 @@ export default function LandingPage() {
               Launch IdentityOS
             </Link>
             <button
+              onClick={handleExploreDemo}
+              className="w-full sm:w-auto px-8 py-3.5 border border-magenta/40 hover:border-magenta text-fog hover:text-magenta bg-magenta/5 rounded-md font-mono text-xs tracking-wider transition-all shadow-glow-magenta/20"
+            >
+              ⚡ Explore Demo Preset
+            </button>
+            <button
               onClick={triggerDemo}
               disabled={demoActive}
               className="w-full sm:w-auto px-8 py-3.5 border border-panel-raised hover:border-cyan text-fog hover:text-cyan bg-panel-raised/35 rounded-md font-mono text-xs tracking-wider transition-all disabled:opacity-50"
             >
-              {demoActive ? "Running Live Demo..." : "Watch Live Demo"}
+              {demoActive ? "Running Simulator..." : "Watch Ingestion Simulator"}
             </button>
           </div>
 
@@ -392,7 +411,7 @@ export default function LandingPage() {
               {/* User Node */}
               <div className="absolute z-10 w-20 h-20 rounded-full border border-cyan/40 bg-cyan/5 flex flex-col items-center justify-center text-center shadow-glow-cyan hover:scale-110 transition-transform cursor-pointer">
                 <span className="text-cyan font-bold text-xs uppercase">User</span>
-                <span className="text-[8px] text-mist">Sapna Jha</span>
+                <span className="text-[8px] text-mist">Alex Morgan</span>
               </div>
 
               {/* Skill Nodes */}

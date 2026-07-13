@@ -34,10 +34,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen bg-void text-fog antialiased font-sans select-none overflow-x-hidden">
-        <div className="scanlines" aria-hidden="true" />
-        <div className="glow-orb glow-orb-cyan" aria-hidden="true" />
-        <div className="glow-orb glow-orb-magenta" aria-hidden="true" />
+      <body className="min-h-screen bg-void text-fog antialiased font-sans select-none overflow-x-hidden relative">
+        <div className="aurora-container" aria-hidden="true">
+          <div className="aurora-orb aurora-1" />
+          <div className="aurora-orb aurora-2" />
+        </div>
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>

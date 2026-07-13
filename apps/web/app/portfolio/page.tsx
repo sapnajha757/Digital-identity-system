@@ -28,6 +28,53 @@ export default function PortfolioPage() {
 
   const skills = metrics?.career_twin?.strongest_skills ?? [];
 
+  const handleExportJSON = () => {
+    const data = {
+      profile: {
+        role_trend: metrics?.career_twin?.current_role_trend,
+        synopsis: metrics?.ai_summary_narrative,
+        direction: metrics?.career_twin?.career_direction,
+        skills: skills,
+      },
+      timeline: timeline.map((e) => ({
+        date: e.event_date,
+        title: e.title,
+        type: e.event_type,
+        date_inferred: e.date_inferred,
+      })),
+      documents: docs.map((d) => ({
+        filename: d.original_filename,
+        type: d.file_type,
+        uploaded_at: d.uploaded_at,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `identity_dossier_${metrics?.career_twin?.current_role_trend?.replace(/\s+/g, "_").toLowerCase() || "profile"}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSV = () => {
+    let csv = "Date,Title,Type,Date Inferred\n";
+    timeline.forEach((e) => {
+      const date = new Date(e.event_date).toLocaleDateString();
+      const title = `"${e.title.replace(/"/g, '""')}"`;
+      const type = `"${e.event_type.replace(/"/g, '""')}"`;
+      const inferred = e.date_inferred ? "Yes" : "No";
+      csv += `${date},${title},${type},${inferred}\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `milestones_${metrics?.career_twin?.current_role_trend?.replace(/\s+/g, "_").toLowerCase() || "profile"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 md:px-10 bg-void text-fog min-h-screen space-y-12 print:bg-white print:text-black">
       {/* HUD Header */}
@@ -42,18 +89,30 @@ export default function PortfolioPage() {
             Role Trend Focus: <span className="text-cyan font-bold print:text-black">{metrics?.career_twin?.current_role_trend ?? "Ingesting credentials..."}</span>
           </p>
         </div>
-        <div className="flex gap-3 print:hidden">
+        <div className="flex flex-wrap gap-2 print:hidden">
           <Link 
             href="/"
-            className="px-4 py-2 border border-panel-raised bg-panel-raised/50 text-fog font-mono text-xs uppercase tracking-wider rounded transition-all"
+            className="px-3 py-1.5 border border-panel-raised bg-panel-raised/50 text-fog font-mono text-[10px] uppercase tracking-wider rounded transition-all hover:bg-panel-raised"
           >
             ← [DASHBOARD]
           </Link>
           <button 
             onClick={() => window.print()}
-            className="px-4 py-2 border border-cyan/40 hover:border-cyan bg-cyan/5 text-cyan font-mono text-xs uppercase tracking-wider rounded transition-all"
+            className="px-3 py-1.5 border border-cyan/40 hover:border-cyan bg-cyan/5 text-cyan font-mono text-[10px] uppercase tracking-wider rounded transition-all"
           >
             [PRINT / PDF]
+          </button>
+          <button 
+            onClick={handleExportJSON}
+            className="px-3 py-1.5 border border-magenta/40 hover:border-magenta bg-magenta/5 text-magenta font-mono text-[10px] uppercase tracking-wider rounded transition-all"
+          >
+            [EXPORT JSON]
+          </button>
+          <button 
+            onClick={handleExportCSV}
+            className="px-3 py-1.5 border border-cyan/40 hover:border-cyan bg-cyan/5 text-cyan font-mono text-[10px] uppercase tracking-wider rounded transition-all"
+          >
+            [EXPORT CSV]
           </button>
         </div>
       </div>

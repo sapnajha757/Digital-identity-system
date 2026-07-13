@@ -77,9 +77,11 @@ export default function GraphPage() {
       return matchesCategory && matchesSearch;
     });
 
-    const radius = Math.max(240, filteredNodesData.length * 22);
+    const radius = Math.max(260, filteredNodesData.length * 28);
 
     const nodesList: Node[] = filteredNodesData.map((n, i) => {
+      // Alternate radius slightly to prevent adjacent node overlapping
+      const nodeRadius = radius * (1 + (i % 2 === 0 ? 0.12 : -0.12));
       const angle = (2 * Math.PI * i) / Math.max(filteredNodesData.length, 1);
       const colors = NODE_COLOR[n.type] ?? { bg: "#0d0526", border: "#7a7195", glow: "rgba(122, 113, 149, 0.3)" };
       
@@ -113,10 +115,11 @@ export default function GraphPage() {
       return {
         id: n.id,
         position: {
-          x: center.x + radius * Math.cos(angle),
-          y: center.y + radius * Math.sin(angle),
+          x: center.x + nodeRadius * Math.cos(angle),
+          y: center.y + nodeRadius * Math.sin(angle),
         },
         data: { label: n.label, type: n.type, properties: n.properties },
+        className: "animate-node-breathe",
         style: {
           background: colors.bg,
           border: borderStyle,
@@ -149,6 +152,11 @@ export default function GraphPage() {
         let strokeWidth = isHighConfidence ? 1.5 : 1.0;
         let opacity = 0.8;
         let animated = isHighConfidence;
+        let filter = undefined;
+
+        if (isHighConfidence) {
+          filter = "drop-shadow(0 0 3px rgba(0, 240, 255, 0.4))";
+        }
 
         if (hasAnyFocus) {
           if (isConnectedToFocus) {
@@ -156,8 +164,10 @@ export default function GraphPage() {
             strokeWidth = 2.5;
             opacity = 1.0;
             animated = true;
+            filter = "drop-shadow(0 0 5px rgba(0, 240, 255, 0.8))";
           } else {
             opacity = 0.08;
+            filter = undefined;
           }
         }
 
@@ -171,6 +181,7 @@ export default function GraphPage() {
             stroke: strokeColor, 
             strokeWidth: strokeWidth,
             opacity: opacity,
+            filter: filter,
             transition: "all 0.3s ease-out",
           },
           labelStyle: { fill: "#7A7195", fontFamily: "var(--font-jetbrains)", fontSize: 9 },

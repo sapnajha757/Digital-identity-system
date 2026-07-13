@@ -40,7 +40,7 @@ class AuthResponse(BaseModel):
     user: UserResponse
 
 async def get_or_create_demo_user(db: AsyncSession) -> User:
-    demo_email = "sapnajha2007@gmail.com"
+    demo_email = "johndoe@example.com"
     result = await db.execute(select(User).where(User.email == demo_email))
     user = result.scalar_one_or_none()
     if user is None:
@@ -103,7 +103,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     
     if user is None or not user.hashed_password or not verify_password(req.password, user.hashed_password):
         # Fallback helper for demo user if they are being accessed for the first time
-        if req.email == "sapnajha2007@gmail.com" and req.password == "password123":
+        if req.email == "johndoe@example.com" and req.password == "password123":
             user = await get_or_create_demo_user(db)
         else:
             raise HTTPException(

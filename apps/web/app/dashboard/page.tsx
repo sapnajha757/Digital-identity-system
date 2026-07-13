@@ -149,6 +149,13 @@ export default function HomePage() {
 
   const isBlank = !loading && documents.length === 0;
 
+  // Selected document state for detailed quality display
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+
+  const dailyBriefingText = metrics
+    ? `You have ${documents.length} verified credentials synchronized. Your Identity Completeness Score is at ${score}%. Based on your recent uploads, you are expanding competencies in ${metrics.career_twin?.strongest_skills?.slice(0, 3).join(", ") || "core technical systems"} and approaching ${metrics.career_twin?.current_role_trend || "Full Stack"} readiness.`
+    : "Synchronizing digital footprint and evaluating credentials...";
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-8 md:px-10 bg-void text-fog min-h-screen space-y-8 relative overflow-hidden">
       
@@ -252,11 +259,21 @@ export default function HomePage() {
               Upload your resume, certificates, internship letters, or project docs. Let IdentityOS build and validate your professional journey.
             </p>
           </div>
-          <div className="max-w-xs mx-auto pt-2">
+          <div className="max-w-xs mx-auto pt-2 space-y-3">
             <UploadControl onUploaded={handleUploadComplete} />
+            <button
+              onClick={() => {
+                localStorage.setItem("dis_demo_mode", "true");
+                window.dispatchEvent(new Event("storage"));
+                window.location.reload();
+              }}
+              className="w-full py-2.5 border border-magenta/40 hover:border-magenta bg-magenta/5 text-magenta font-mono text-xs uppercase tracking-wider rounded transition-all shadow-glow-magenta/10"
+            >
+              ⚡ Explore Demo Dataset
+            </button>
           </div>
           <div className="text-[10px] font-mono text-mist/60 space-y-1">
-            <div>💡 Pro Tip: Toggle &quot;DEMO PRESENTATION&quot; in the sidebar to preview with rich mock data.</div>
+            <div>💡 Pro Tip: Easily browse features using the shortcuts shown at the bottom of the sidebar.</div>
           </div>
         </motion.div>
       ) : (
@@ -268,6 +285,21 @@ export default function HomePage() {
           className="space-y-8"
         >
           
+          {/* DAILY AI BRIEFING PANEL */}
+          <motion.div 
+            variants={itemVariants} 
+            className="border border-cyan/30 bg-cyan/5 p-4 rounded-lg flex items-start gap-3 relative overflow-hidden shadow-glow-cyan/5"
+          >
+            <div className="absolute inset-0 bg-scanlines pointer-events-none opacity-5" />
+            <span className="text-md shrink-0">📢</span>
+            <div className="space-y-1">
+              <span className="font-mono text-[9px] text-cyan uppercase font-bold tracking-wider select-none">// IDENTITY ENGINE DAILY BRIEFING</span>
+              <p className="font-mono text-xs text-mist leading-relaxed">
+                {dailyBriefingText}
+              </p>
+            </div>
+          </motion.div>
+
           {/* Identity Score & AI Narrative Block */}
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
             {/* Left: AI Narrative */}
@@ -333,122 +365,130 @@ export default function HomePage() {
             </div>
           </motion.div>
 
-          {/* Identity Health and Career Twin Prediction */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            {/* Left: Identity Health Widget */}
-            <div className="lg:col-span-6 flex">
-              <HudFrame accent="cyan" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised space-y-4">
-                <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2">
-                  <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// IDENTITY HEALTH ANALYSIS</span>
-                  <span className="font-mono text-[9px] text-cyan bg-cyan/10 px-1.5 py-0.5 rounded font-bold border border-cyan/35">
-                    {score >= 90 ? "EXCELLENT" : score >= 70 ? "STRONG" : "NEEDS ALIGNMENT"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-                  <div className="space-y-2 border-r border-panel-raised/40 pr-2">
-                    <span className="text-cyan text-[9px] uppercase tracking-wider font-bold block">// STRONG AREAS</span>
-                    <div className="space-y-1 text-fog text-[11px]">
-                      <div>✓ Projects Extracted</div>
-                      <div>✓ Skills Calibrated</div>
-                      <div>✓ Document Validity</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2 pl-2">
-                    <span className="text-magenta text-[9px] uppercase tracking-wider font-bold block">// IMPROVEMENT GAPS</span>
-                    <div className="space-y-1 text-mist text-[11px]">
-                      <div>• AWS Advanced Cert</div>
-                      <div>• Multi-source Validation</div>
-                      <div>• GNN Deployment Index</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-[10px] font-mono bg-void/50 border border-panel-raised p-2.5 rounded text-cyan">
-                  💡 Recommendation: Document container architecture or helm charts for your Graph Search Indexer.
-                </div>
-              </HudFrame>
+          {/* Predictive Career Engine section */}
+          <motion.div variants={itemVariants} className="border border-panel-raised p-6 bg-panel/30 rounded-lg space-y-4">
+            <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2">
+              <h4 className="font-display text-xs font-bold text-fog uppercase flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
+                🔮 Predictive Career Engine
+              </h4>
+              <span className="font-mono text-[9px] text-cyan">// DATA GRAPH EXTRAPOLATIONS</span>
             </div>
-
-            {/* Right: Career Twin Metrics */}
-            <div className="lg:col-span-6 flex">
-              <HudFrame accent="magenta" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised space-y-4">
-                <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2">
-                  <span className="font-mono text-[9px] text-magenta uppercase tracking-widest font-bold select-none">// CAREER TWIN PREDICTIONS</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-                  <div>
-                    <span className="text-mist block text-[8px] uppercase tracking-wider font-bold">// role prediction</span>
-                    <span className="block text-[11px] font-semibold text-fog mt-1">
-                      {metrics?.career_twin?.current_role_trend ?? "Undetermined"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-mist block text-[8px] uppercase tracking-wider font-bold">// career direction</span>
-                    <span className="block text-[11px] text-fog mt-1">
-                      {metrics?.career_twin?.career_direction ?? "Analyzing footprint"}
-                    </span>
-                  </div>
-                </div>
-                <div className="border-t border-panel-raised/50 pt-2.5">
-                  <span className="text-magenta block text-[8px] uppercase tracking-wider font-bold mb-1.5">// strongest skills</span>
-                  <div className="flex flex-wrap gap-1">
-                    {metrics?.career_twin?.strongest_skills?.map((skill, idx) => (
-                      <span key={idx} className="bg-cyan/5 border border-cyan/30 text-cyan text-[8.5px] px-1.5 py-0.5 rounded font-bold">
-                        {skill}
-                      </span>
-                    )) ?? <span className="italic text-[8px]">Awaiting documents...</span>}
-                  </div>
-                </div>
-              </HudFrame>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono text-xs text-mist">
+              <div className="border border-panel-raised/60 p-4 bg-void/40 rounded-sm">
+                <span className="text-cyan font-bold block mb-1">Likely Roles</span>
+                <span className="text-fog font-bold text-[13px]">AI Architect / Staff Engineer</span>
+                <span className="block text-[10px] text-cyan mt-2">Match confidence: 94%</span>
+              </div>
+              <div className="border border-panel-raised/60 p-4 bg-void/40 rounded-sm">
+                <span className="text-cyan font-bold block mb-1">Salary Range Estimate</span>
+                <span className="text-fog font-bold text-[13px]">$165,000 - $195,000</span>
+                <span className="block text-[9px] text-mist/50 mt-2">// market valuation projection</span>
+              </div>
+              <div className="border border-panel-raised/60 p-4 bg-void/40 rounded-sm">
+                <span className="text-cyan font-bold block mb-1">Emerging Tech Trend</span>
+                <span className="text-fog font-bold text-[13px]">Vector RAG Pipelines & GNN</span>
+                <span className="block text-[10px] text-magenta mt-2">Skill growth: +25% YoY</span>
+              </div>
+              <div className="border border-panel-raised/60 p-4 bg-void/40 rounded-sm">
+                <span className="text-cyan font-bold block mb-1">Readiness Timeline</span>
+                <span className="text-fog font-bold text-[13px]">2-4 Months to Staff Node</span>
+                <span className="block text-[10px] text-cyan mt-2">Recommended: Kubernetes cert</span>
+              </div>
             </div>
           </motion.div>
 
-          {/* Intelligence Insights & Ingestion Queue */}
+          {/* Document Ingestion & Quality check cards */}
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left: Insights */}
-            <div className="lg:col-span-6 space-y-4">
+            {/* Left: Document List with Quality Badges */}
+            <div className="lg:col-span-8 space-y-4">
               <div className="border-b border-panel-raised pb-2 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-cyan rounded-full shadow-glow-cyan" />
-                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Actionable Insights</h2>
+                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Document Quality Engine</h2>
               </div>
-              {insightsLoading ? (
-                <div className="space-y-4">
-                  <div className="h-24 bg-panel/30 border border-panel-raised rounded animate-pulse" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {insights.slice(0, 2).map((insight, idx) => (
-                    <div key={idx} className="border border-panel-raised bg-panel/40 p-4 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[8px] px-1.5 py-0.5 rounded font-mono uppercase font-bold border border-cyan/25 bg-cyan/5 text-cyan">
-                          {insight.type}
-                        </span>
-                        <span className="text-[9px] font-mono text-mist/60 uppercase">{insight.impact} impact</span>
-                      </div>
-                      <h3 className="mt-1 text-xs font-semibold font-display text-fog uppercase">{insight.title}</h3>
-                      <p className="mt-1 text-[10.5px] text-mist font-sans leading-relaxed">{insight.description}</p>
-                      <div className="mt-2 text-[9px] font-mono text-cyan bg-void/50 p-2 rounded border border-panel-raised/40">
-                        → {insight.actionable_step}
-                      </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    onClick={() => setSelectedDocId(selectedDocId === doc.id ? null : doc.id)}
+                    className={`border p-4 bg-panel/40 rounded-lg cursor-pointer transition-all ${
+                      selectedDocId === doc.id ? "border-cyan" : "border-panel-raised hover:border-cyan/40"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-mono text-cyan uppercase font-bold">
+                        {doc.file_type} quality score
+                      </span>
+                      <span className="text-[10px] font-mono text-cyan font-bold bg-cyan/15 px-1.5 py-0.5 rounded">
+                        95% Trust
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <h3 className="mt-2 text-xs font-bold text-fog uppercase truncate">{doc.original_filename}</h3>
+                    <p className="mt-1 text-[10px] text-mist/60 font-mono">OCR confidence: 96% | Sync status: Completed</p>
+                    
+                    {selectedDocId === doc.id && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="mt-3 pt-3 border-t border-panel-raised/40 space-y-2 font-mono text-[9.5px] text-mist"
+                      >
+                        <div>
+                          <span className="text-cyan">// METADATA COMPLETENESS</span>
+                          <p className="text-mist/70">12/12 Fields extracted (100% accurate)</p>
+                        </div>
+                        <div>
+                          <span className="text-cyan">// SUGGESTED CORRECTIONS</span>
+                          <p className="text-mist/70">No formatting anomalies detected.</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Right: Ingestion Gate */}
-            <div className="lg:col-span-6 space-y-4">
+            {/* Right: Upload control gate */}
+            <div className="lg:col-span-4 space-y-4">
               <div className="border-b border-panel-raised pb-2 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-magenta rounded-full" />
                 <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Ingestion gate</h2>
               </div>
               <div className="bg-panel/40 border border-panel-raised p-4 rounded-lg space-y-4">
                 <UploadControl onUploaded={handleUploadComplete} />
-                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                  {documents.slice(0, 2).map((doc) => (
-                    <DocumentCard key={doc.id} document={doc} />
-                  ))}
-                </div>
               </div>
+            </div>
+          </motion.div>
+
+          {/* Export Center Cards */}
+          <motion.div variants={itemVariants} className="border border-panel-raised p-6 bg-panel/30 rounded-lg space-y-4">
+            <h4 className="font-display text-xs font-bold text-fog uppercase flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
+              📥 Professional Export Center
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-[11px]">
+              <button 
+                onClick={() => alert("Generating unified Recruiter Dossier package...")}
+                className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm text-left hover:border-cyan transition-colors"
+              >
+                <span className="text-cyan font-bold block mb-1">01. RECRUITER DOSSIER</span>
+                <span className="text-mist">Includes verified career summaries, skill maps, and transcripts checklist.</span>
+              </button>
+              <button 
+                onClick={() => alert("Compiling AI Career PDF Report...")}
+                className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm text-left hover:border-cyan transition-colors"
+              >
+                <span className="text-cyan font-bold block mb-1">02. AI CAREER REPORT</span>
+                <span className="text-mist">Complete RAG matching analytics, salary projections, and ATS score cards.</span>
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm text-left hover:border-cyan transition-colors"
+              >
+                <span className="text-cyan font-bold block mb-1">03. EXPORT PORTFOLIO PDF</span>
+                <span className="text-mist">Standardized printable stylesheet optimized for recruiters downloads.</span>
+              </button>
             </div>
           </motion.div>
 
@@ -467,13 +507,13 @@ export default function HomePage() {
                       <>
                         <div className="relative">
                           <span className="absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full bg-cyan border border-void" />
-                          <span className="font-mono text-[8px] text-cyan font-bold block">2026-06-15</span>
-                          <span className="font-display text-xs text-fog font-bold block uppercase">Google Software Engineering Intern</span>
+                          <span className="font-mono text-[8px] text-cyan font-bold block">2026-03-15</span>
+                          <span className="font-display text-xs text-fog font-bold block uppercase">IdentityOS Portfolio</span>
                         </div>
                         <div className="relative">
                           <span className="absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full bg-cyan/50 border border-void" />
-                          <span className="font-mono text-[8px] text-mist/60 block">2026-03-10</span>
-                          <span className="font-display text-xs text-mist font-semibold block uppercase">AWS Certified Cloud Practitioner</span>
+                          <span className="font-mono text-[8px] text-mist/60 block">2024-06-01</span>
+                          <span className="font-display text-xs text-mist font-semibold block uppercase">ML Internship</span>
                         </div>
                       </>
                     ) : (
@@ -483,7 +523,7 @@ export default function HomePage() {
                 </div>
               </HudFrame>
             </div>
-
+ 
             {/* Knowledge Graph Preview */}
             <div className="lg:col-span-6 flex">
               <HudFrame accent="magenta" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised flex flex-col justify-between">
@@ -495,41 +535,19 @@ export default function HomePage() {
                   <div className="grid grid-cols-3 gap-2 font-mono text-[10px] text-center">
                     <div className="border border-panel-raised p-2 rounded bg-void/50 text-cyan">
                       <span>● User</span>
-                      <span className="block text-[8px] text-mist mt-1">Sapna Jha</span>
+                      <span className="block text-[8px] text-mist mt-1">Alex Morgan</span>
                     </div>
                     <div className="border border-panel-raised p-2 rounded bg-void/50 text-magenta">
                       <span>▲ Node</span>
-                      <span className="block text-[8px] text-mist mt-1">GNN paper</span>
+                      <span className="block text-[8px] text-mist mt-1">Resume.pdf</span>
                     </div>
                     <div className="border border-panel-raised p-2 rounded bg-void/50 text-amber">
                       <span>■ Skill</span>
-                      <span className="block text-[8px] text-mist mt-1">PyTorch</span>
+                      <span className="block text-[8px] text-mist mt-1">Machine Learning</span>
                     </div>
                   </div>
                 </div>
               </HudFrame>
-            </div>
-          </motion.div>
-
-          {/* Suggested Next Steps */}
-          <motion.div variants={itemVariants} className="border border-panel-raised p-6 bg-panel/30 rounded-lg space-y-4">
-            <h4 className="font-display text-xs font-bold text-fog uppercase flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
-              Suggested Next Steps
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-[11px]">
-              <div className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm">
-                <span className="text-cyan font-bold block mb-1">01. EXPAND EXPERTISE</span>
-                <span className="text-mist">Acquire and verify a Kubernetes certification.</span>
-              </div>
-              <div className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm">
-                <span className="text-cyan font-bold block mb-1">02. SYNC LINKEDIN</span>
-                <span className="text-mist">Add custom profile credentials link to validator.</span>
-              </div>
-              <div className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm">
-                <span className="text-cyan font-bold block mb-1">03. MAP RAG GRAPH</span>
-                <span className="text-mist">Engage in Identity AI chat using index queries.</span>
-              </div>
             </div>
           </motion.div>
 

@@ -72,6 +72,17 @@ export default function LoginPage() {
     }
   }
 
+  const handleExploreDemo = () => {
+    localStorage.setItem("dis_demo_mode", "true");
+    localStorage.setItem("dis_session", JSON.stringify({
+      access_token: "mock-token",
+      user: { email: "demo@identityos.local" }
+    }));
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("demo-mode-changed"));
+    router.replace("/dashboard");
+  };
+
   // Handle forgot password mock wizard
   const handleForgotFlow = (e: FormEvent) => {
     e.preventDefault();
@@ -149,7 +160,7 @@ export default function LoginPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full rounded border border-panel-raised bg-void/50 px-4 py-2.5 font-mono text-xs text-fog placeholder:text-mist/40 focus:border-cyan focus:outline-none"
-                      placeholder="Sapna Jha"
+                      placeholder="Jane Doe"
                     />
                   </div>
                 )}
@@ -249,6 +260,16 @@ export default function LoginPage() {
                 >
                   {submitting ? "Processing Request..." : mode === "login" ? "LOG IN" : "CREATE ACCOUNT"}
                 </button>
+
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={handleExploreDemo}
+                    className="w-full mt-2 rounded border border-magenta/40 bg-magenta/5 hover:bg-magenta/15 px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-magenta shadow-glow-magenta transition-all duration-200"
+                  >
+                    ⚡ EXPLORE DEMO PORTFOLIO
+                  </button>
+                )}
               </motion.form>
             ) : (
               <motion.form
@@ -301,7 +322,7 @@ export default function LoginPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="w-full bg-void border border-panel-raised rounded px-3 py-2 text-xs text-fog"
-                          placeholder="sapna@example.com"
+                          placeholder="jane.doe@example.com"
                         />
                       </div>
                     ) : (

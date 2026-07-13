@@ -1,133 +1,163 @@
-# Digital Identity System — Project Scaffold
+# IdentityOS 🚀
 
-AI-powered digital identity system: understands, categorizes, and connects a
-student's documents (certificates, resumes, project reports) instead of just
-storing them.
+An AI-powered Digital Identity Operating System that understands, validates, and connects a user's professional journey, turning folders of unorganized documents into a queryable, structured knowledge graph and recruiter-ready verified portfolio.
 
-## Stack
+---
 
-| Layer | Tech |
-|---|---|
-| Frontend | Next.js 14, React, TypeScript, Tailwind, React Flow |
-| Backend | FastAPI (Python 3.11+) |
-| Relational DB | Postgres |
-| Vector DB | Qdrant |
-| Knowledge Graph | Neo4j |
-| File storage | Supabase Storage |
-| Auth | Supabase Auth |
+## 📖 Project Vision & Problem Statement
 
-## What's in this scaffold (Day 1)
+### The Problem
+Traditional portfolios, CVs, and document drives are static, fragmented, and unverified. Resumes are filled with self-proclaimed skills, certificates are buried in email folders, and project context is lost across deep directory paths. Recruiters spend hours verifying credentials, while individuals struggle to show the cohesive narrative of their career evolution.
 
-- Docker Compose for Postgres, Qdrant, Neo4j — one command, all three running locally
-- Postgres schema auto-loaded on first container start (`apps/api/db/schema.sql`)
-- FastAPI app with:
-  - Supabase JWT auth dependency (`core/security.py`)
-  - Async Postgres, Qdrant, and Neo4j connection modules (`db/`)
-  - SQLAlchemy models + Pydantic schemas matching the DB schema
-  - Working `/documents/upload`, `/documents`, `/documents/{id}/status`,
-    `/search`, `/timeline`, `/graph` routes (pipeline internals are stubs —
-    filled in module by module)
-- Next.js app with:
-  - Tailwind configured
-  - Typed API client (`lib/api-client.ts`) with Supabase auth wired in
-  - Landing page that lists documents from the live API
+### The Solution: IdentityOS
+**IdentityOS** is a cognitive environment that ingests, parses (via OCR), categorizes, indexes, and links all facets of an academic and professional journey. 
+> "You'll never have to search through folders again. IdentityOS already understands your journey."
 
-## Setup
+---
 
-### 1. Start the databases
+## ⚡ Key Features
 
+1. **Intelligent Ingestion Pipeline**: Asynchronous OCR text extraction, chunking, and metadata parsing.
+2. **AI Categorization**: Automatically classifies documents into 7 core types (Resume, Certificate, Project, Academic, Identification, Recommendation, Experience).
+3. **Multi-dimensional Graph Mapping**: Discovers implicit connections (e.g. Skill $\to$ Project, Certificate $\to$ Internship) and projects them into a Neo4j Knowledge Graph.
+4. **Verified Dossier Portfolio**: An exportable (JSON/CSV) and print-optimized recruiter presentation layout with zero-control view security.
+5. **Grounded AI Copilot**: High-fidelity RAG-powered chatbot with direct document source citations and confidence scores.
+6. **Career Twin & Predictive Engine**: Infers overall role trends, maps career directions, and recommends target steps.
+7. **Identity Verification & Scoring**: Compiles a real-time credibility metric based on verified evidence count, cross-linking density, and document validity.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS, ReactFlow, Framer Motion | HUD workspace interface, graph rendering, and presentation modes. |
+| **Backend** | FastAPI (Python 3.11+), SQLAlchemy | High-performance async REST API and background task worker. |
+| **Relational DB** | PostgreSQL | Source of truth for documents, extracted text chunks, and metadata. |
+| **Vector DB** | Qdrant | Dense vector search indexing (`bge-large-en-v1.5` embeddings) for semantic search. |
+| **Graph DB** | Neo4j | Graph-relational storage for discovered skills, credentials, and timeline edges. |
+
+---
+
+## 🧩 System Architecture
+
+```mermaid
+graph TD
+    A[User / Recruiter] -->|Interacts| B[Next.js Frontend]
+    B -->|API Requests| C[FastAPI Backend]
+    C -->|Store Metadata / Chunks| D[(PostgreSQL)]
+    C -->|Query Embeddings| E[(Qdrant Vector DB)]
+    C -->|Traverse Relations| F[(Neo4j Graph DB)]
+    
+    subgraph Ingestion Pipeline [Async Ingestion Pipeline]
+        G[Document Upload] -->|Extract Text| H[OCR Engine]
+        H -->|Classify & Tag| I[LLM Classifier]
+        I -->|Generate Vectors| J[Embedding Service]
+        I -->|Extract Relationships| K[Graph Linker]
+        J -->|Index| E
+        K -->|Create Nodes/Edges| F
+    end
+```
+
+---
+
+## 🗄️ Database Responsibilities
+
+To avoid synchronization issues and text duplication, the responsibilities are strictly separated:
+- **PostgreSQL**: Stores structured metadata, user credentials, document statuses, raw text chunks, and parsed timeline events.
+- **Qdrant**: Stores high-dimensional text embeddings. Holds only a pointer reference (`document_chunk_id`) to Postgres to perform semantic search, ensuring zero text redundancy.
+- **Neo4j**: Manages entities (Nodes: `Skill`, `Project`, `Certificate`, etc.) and their relationships (Edges: `HAS_SKILL`, `VERIFIED_BY`). Nodes carry minimal IDs; detailed text is fetched on-demand from Postgres.
+
+---
+
+## 📁 Directory Structure
+
+```
+digital-identity-system/
+├── apps/
+│   ├── api/                   # Python FastAPI Backend
+│   │   ├── core/              # Config, Security, and App Constants
+│   │   ├── db/                # Postgres, Qdrant, and Neo4j Connections
+│   │   ├── models/            # SQLAlchemy database models
+│   │   ├── routers/           # REST endpoint controllers (auth, chat, dashboard, etc.)
+│   │   ├── services/          # OCR, LLM, Embedding, Graph, RAG, and Timeline services
+│   │   ├── uploads/           # Temporary local storage for uploads
+│   │   ├── workers/           # Asynchronous ingestion tasks
+│   │   └── main.py            # API entrypoint
+│   └── web/                   # Next.js Frontend
+│       ├── app/               # Next.js App Router views (dashboard, graph, chat, etc.)
+│       ├── components/        # Reusable UI widgets (AppShell, HudFrame, Sidebar, etc.)
+│       ├── lib/               # API clients, axios configurations
+│       └── package.json
+├── docker-compose.yml         # Local database orchestration configurations
+└── README.md
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisite Infrastructure
+Bring up the relational database, vector database, and graph database using Docker:
 ```bash
 docker compose up -d
 ```
+*Port mappings:*
+- PostgreSQL: `localhost:5432`
+- Qdrant: `localhost:6333`
+- Neo4j: `localhost:7474` (web browser UI) / `localhost:7687` (bolt connection)
 
-This brings up Postgres (`localhost:5432`), Qdrant (`localhost:6333`), and
-Neo4j (`localhost:7474` browser UI, `localhost:7687` bolt).
-
-### 2. Backend
-
+### 2. Backend Setup
 ```bash
 cd apps/api
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+# Linux/macOS
+source venv/bin/activate
+# Windows
+.\venv\Scripts\activate
+
 pip install -r requirements.txt
-cp .env.example .env            # fill in Supabase + LLM keys
+cp .env.example .env # Update with LLM provider keys and configuration overrides
 uvicorn main:app --reload --port 8000
 ```
+Verify backend is online: `curl http://localhost:8000/health` $\to$ `{"status": "ok"}`
 
-Verify: `curl http://localhost:8000/health` → `{"status": "ok", ...}`
-
-### 3. Frontend
-
+### 3. Frontend Setup
 ```bash
 cd apps/web
 npm install
-cp .env.local.example .env.local   # fill in Supabase URL + anon key
+cp .env.local.example .env.local
 npm run dev
 ```
+Open `http://localhost:3000` in your web browser.
 
-Visit `http://localhost:3000`.
+---
 
-## Next steps (module order)
+## 🔑 Demo & Verification Credentials
 
-1. ~~**Module 1** — `services/ingestion`: OCR + extraction, real Supabase Storage upload~~ ✅ done
-2. ~~**Module 2** — `services/categorization`: LLM classification into the 7 fixed categories, entity extraction~~ ✅ done
-3. ~~**Module 3** — `services/embeddings` + `services/knowledge_graph`: bge-large-en-v1.5 embeddings into Qdrant, relationship inference into Neo4j~~ ✅ done
-4. ~~**Module 4** — `services/timeline`: parse extracted date entities into `timeline_events`~~ ✅ done
-5. ~~**Module 5** — `services/rag`: grounded chat assistant on top of retrieval~~ ✅ done — see `POST /chat`
+IdentityOS has a built-in **Demo Mode Preset** toggle in the sidebar. This allows you to run and showcase the entire document processing cycle immediately.
 
-> If you already ran `docker compose up` before Module 4, the `timeline_events`
-> table won't have the new `date_inferred` column (schema.sql only runs on
-> first container start). Run `docker compose down -v && docker compose up -d`
-> to reset the local Postgres volume and pick it up.
+- **Username**: `demo@identityos.local`
+- **Password**: `demo1234`
+*(If using custom database configurations, sign up/login will auto-provision a fresh demo environment).*
 
-## All core modules are wired end-to-end
+---
 
-Full flow: **Upload → OCR/extraction → Categorization → (Embeddings + Knowledge Graph + Timeline, in parallel) → completed**
+## 📡 Core API Endpoints
 
-Plus two query surfaces:
-- `POST /search` — raw ranked chunks, no generation (fast, for building your own UI on top)
-- `POST /chat` — same retrieval, plus a grounded natural-language answer via Claude (`services/rag/`). If retrieval finds nothing, it says so rather than guessing; if the LLM call fails, it still returns the raw matches so the user isn't left with nothing.
+- `POST /auth/login` - Local authentication & session creation.
+- `POST /documents/upload` - Ingests document file, triggers async OCR extraction.
+- `GET /documents` - List uploaded files and current processing statuses.
+- `POST /search` - Semantic search across vectorized document chunks.
+- `POST /chat` - Grounded RAG conversational AI.
+- `GET /graph` - Returns Neo4j nodes and edges for ReactFlow visualization.
+- `GET /timeline` - Returns chronologically ordered milestone objects.
+- `GET /dashboard/metrics` - Fetch career trends, profile summary, and credibility scores.
 
-Retrieval logic itself lives in one place (`services/rag/retrieval.py`) so `/search` and `/chat` can never drift apart in how they filter or rank results.
+---
 
-## Auth
+## 🔮 Future Roadmap
 
-`/login` handles both sign-up and login via Supabase email/password. `AuthProvider`
-(`components/AuthProvider.tsx`) manages the session client-side and redirects:
-unauthenticated users get bounced to `/login`, authenticated users get bounced
-away from it. The sidebar shows the logged-in email and a logout button.
-
-**Hackathon demo tip**: Supabase requires email confirmation by default, which
-means a fresh sign-up can't log in until they click a confirmation email. For
-faster demos, go to your Supabase project → **Authentication → Providers →
-Email** and turn off "Confirm email" — sign-up will log the user in immediately.
-
-## Frontend
-
-Four pages, one design system ("Dossier" — see below), all wired to the live API:
-
-- **`/`** — Documents: upload + status list
-- **`/timeline`** — vertical journey view (flags upload-date fallbacks explicitly via `date_inferred`)
-- **`/graph`** — React Flow knowledge graph, radial layout
-- **`/chat`** — grounded Q&A with source citations
-
-**Design system — "IDENT.SYS" (retro-futuristic)**: dark synthwave terminal aesthetic. Colors: `void #0A0118` (bg), `panel #150A2E` (surface), `cyan #00F0FF` (primary accent/neon glow), `magenta #FF2E9A` (secondary accent), `amber #FFB627` (pending/warning state), `mist #7A7195` (muted text/borders). Type: Orbitron (headers — geometric, iconic sci-fi display face), Rajdhani (body/UI — technical, condensed), JetBrains Mono (data, ids, timestamps, terminal-style labels). Background: a faint fixed neon grid + a slow CRT scanline overlay (disabled under `prefers-reduced-motion`). Signature element: `components/HudFrame.tsx` — four-corner HUD scanner brackets wrapped around document cards, timeline nodes, and chat messages, evoking "the system is reading this," which ties directly to what the product does.
-
-`npx tsc --noEmit` passes clean with zero type errors. (A production `npm run build` needs to fetch Orbitron/Rajdhani/JetBrains Mono from Google Fonts at build time — make sure you have normal internet access when you run it.)
-
-## What's left for a polished hackathon submission
-
-- Auth: Supabase project setup + `.env` / `.env.local` keys filled in
-- Deploy: Render (API) + Vercel (web)
-- Cross-document graph relationships (Project → Internship, Skill → Project across documents) — noted as a deliberate scope cut in `docs/architecture.md`
-- Chat page currently has no loading skeleton for the very first token — fine for a demo, worth polishing if you have spare time
-
-## Notes
-
-- Every database has exactly one job: Postgres = structured facts + source of
-  truth, Qdrant = vectors only (payload is a pointer, never full text), Neo4j
-  = relationships only (nodes carry `id` + `type`, details fetched from
-  Postgres). Don't duplicate text across all three — see `docs/architecture.md`.
-- `BackgroundTasks` is used for async processing in this scaffold (zero infra).
-  Swap for Celery + Redis if you need it to survive process restarts or scale
-  beyond a single instance.
+- **Federated Verification**: Cryptographic signing of credential verification paths.
+- **Cross-User Graph Linkages**: Network mappings across teams and companies to discover optimal project pairings.
+- **Multimodal Extraction**: Direct parsing of video credentials and project walkthrough clips.

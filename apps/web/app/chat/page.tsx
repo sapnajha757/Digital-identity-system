@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useEffect, useRef } from "react";
+import { FormEvent, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiClient, SearchResultItem } from "@/lib/api-client";
 import { HudFrame } from "@/components/HudFrame";
@@ -46,7 +46,7 @@ export default function ChatPage() {
   const queryParam = searchParams.get("q");
   const queryLoadedRef = useRef(false);
 
-  async function sendMessage(query: string) {
+  const sendMessage = useCallback(async (query: string) => {
     if (!query.trim() || sending) return;
 
     setMessages((prev) => [...prev, { role: "user", content: query }]);
@@ -64,7 +64,7 @@ export default function ChatPage() {
     } finally {
       setSending(false);
     }
-  }
+  }, [sending]);
 
   // Pre-fill query param if directed from Command Palette
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function ChatPage() {
       queryLoadedRef.current = true;
       sendMessage(decodeURIComponent(queryParam));
     }
-  }, [queryParam]);
+  }, [queryParam, sendMessage]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -164,8 +164,19 @@ export default function ChatPage() {
         })}
 
         {sending && (
-          <div className="flex items-center gap-2 font-mono text-xs text-amber animate-pulse">
-            <span>&gt; scanning vector index chunks...</span>
+          <div className="flex flex-col items-start space-y-2 w-full">
+            <div className="bg-panel/45 border border-cyan/20 text-fog rounded-lg p-5 max-w-[80%] w-full shadow-sm space-y-3">
+              <div className="flex justify-between items-center border-b border-panel-raised/50 pb-1.5">
+                <span className="font-mono text-[9px] text-cyan font-bold uppercase tracking-wider">// AGENT RETRIEVING EMBEDDINGS</span>
+                <span className="inline-flex gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </span>
+              </div>
+              <div className="h-3 bg-panel-raised/40 rounded animate-pulse w-3/4" />
+              <div className="h-3 bg-panel-raised/40 rounded animate-pulse w-1/2" />
+            </div>
           </div>
         )}
         {error && (
