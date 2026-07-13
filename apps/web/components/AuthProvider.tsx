@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/api-client";
+import { supabase, Session } from "@/lib/api-client";
 
 interface AuthContextValue {
   session: Session | null;

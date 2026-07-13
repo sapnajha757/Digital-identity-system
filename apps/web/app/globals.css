@@ -6,11 +6,11 @@
    "grid background" that anchors the retro-futuristic read without
    overwhelming legibility. */
 body {
-  background-color: #0a0118;
+  background-color: #07090F;
   background-image:
-    linear-gradient(rgba(0, 240, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 240, 255, 0.055) 1px, transparent 1px);
-  background-size: 42px 42px;
+    linear-gradient(rgba(79, 140, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79, 140, 255, 0.02) 1px, transparent 1px);
+  background-size: 56px 56px;
   background-attachment: fixed;
 }
 
@@ -23,20 +23,12 @@ body {
   z-index: 50;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.025) 0px,
-    rgba(255, 255, 255, 0.025) 1px,
+    rgba(255, 255, 255, 0.015) 0px,
+    rgba(255, 255, 255, 0.015) 1px,
     transparent 1px,
-    transparent 3px
+    transparent 4px
   );
-  animation: scan-drift 9s linear infinite;
-}
-@keyframes scan-drift {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 0 120px;
-  }
+  opacity: 0.7;
 }
 @media (prefers-reduced-motion: reduce) {
   .scanlines {
@@ -48,7 +40,7 @@ body {
    these are just the glow/text utilities that support it. */
 /* Gradient text for hero headlines — cyan to magenta, the two primary accents */
 .gradient-text {
-  background: linear-gradient(90deg, #00f0ff 0%, #7b5cff 50%, #ff2e9a 100%);
+  background: linear-gradient(90deg, #4F8CFF 0%, #7B61FF 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -61,33 +53,33 @@ body {
   pointer-events: none;
   position: fixed;
   border-radius: 9999px;
-  filter: blur(90px);
+  filter: blur(120px);
   z-index: 0;
-  opacity: 0.25;
+  opacity: 0.12;
 }
 .glow-orb-cyan {
   top: -10%;
   left: -8%;
-  width: 480px;
-  height: 480px;
-  background: #00f0ff;
-  animation: orb-drift-a 18s ease-in-out infinite;
+  width: 550px;
+  height: 550px;
+  background: #4F8CFF;
+  animation: orb-drift-a 25s ease-in-out infinite;
 }
 .glow-orb-magenta {
   bottom: -12%;
   right: -8%;
-  width: 520px;
-  height: 520px;
-  background: #ff2e9a;
-  animation: orb-drift-b 22s ease-in-out infinite;
+  width: 600px;
+  height: 600px;
+  background: #7B61FF;
+  animation: orb-drift-b 30s ease-in-out infinite;
 }
 @keyframes orb-drift-a {
   0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(40px, 30px); }
+  50% { transform: translate(60px, 40px); }
 }
 @keyframes orb-drift-b {
   0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(-30px, -40px); }
+  50% { transform: translate(-45px, -60px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .glow-orb-cyan,
@@ -110,7 +102,7 @@ body {
 }
 @keyframes pulse-ring {
   0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pulse-dot::after {
@@ -119,14 +111,14 @@ body {
 }
 
 .neon-text-cyan {
-  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  text-shadow: 0 0 10px rgba(79, 140, 255, 0.3);
 }
 .neon-text-magenta {
-  text-shadow: 0 0 8px rgba(255, 46, 154, 0.6);
+  text-shadow: 0 0 10px rgba(123, 97, 255, 0.3);
 }
 
 :focus-visible {
-  outline: 2px solid #00f0ff;
+  outline: 2px solid #4F8CFF;
   outline-offset: 2px;
 }
 
@@ -141,12 +133,16 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0118;
+  background: #07090F;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e1040;
+  background: #191F2A;
   border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4F8CFF/30;
 }

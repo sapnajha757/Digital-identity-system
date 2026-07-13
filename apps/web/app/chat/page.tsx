@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiClient, SearchResultItem } from "@/lib/api-client";
 import { HudFrame } from "@/components/HudFrame";
 
@@ -16,11 +17,34 @@ const SUGGESTED_PROMPTS = [
   "Explain my internship accomplishments",
 ];
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="text-[9px] font-mono text-mist hover:text-cyan uppercase transition-colors"
+    >
+      {copied ? "[COPIED]" : "[COPY]"}
+    </button>
+  );
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const searchParams = useSearchParams();
+  const queryParam = searchParams.get("q");
+  const queryLoadedRef = useRef(false);
 
   async function sendMessage(query: string) {
     if (!query.trim() || sending) return;
@@ -42,6 +66,14 @@ export default function ChatPage() {
     }
   }
 
+  // Pre-fill query param if directed from Command Palette
+  useEffect(() => {
+    if (queryParam && !queryLoadedRef.current) {
+      queryLoadedRef.current = true;
+      sendMessage(decodeURIComponent(queryParam));
+    }
+  }, [queryParam]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const query = input.trim();
@@ -53,12 +85,12 @@ export default function ChatPage() {
     <div className="mx-auto flex h-screen max-w-4xl flex-col px-6 py-8 md:px-10 bg-void text-fog">
       {/* Header */}
       <div className="border-b border-panel-raised/40 pb-4">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-magenta">// 04 — COGNITIVE QUERY</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-magenta">// 04 — IDENTITY OS QUERY</p>
         <h1 className="mt-2 font-display text-2xl md:text-3xl font-black uppercase tracking-wider text-fog">
-          Grounded Query AI.
+          Identity AI
         </h1>
         <p className="mt-1 text-xs text-mist leading-relaxed font-sans max-w-xl">
-          Ask questions about your cataloged credentials. Every answer is grounded directly in document source embeddings to prevent hallucinations.
+          Ask questions about your cataloged credentials. Every answer is grounded directly in document source embeddings.
         </p>
       </div>
 
@@ -66,8 +98,8 @@ export default function ChatPage() {
       <div className="flex-1 space-y-6 overflow-y-auto my-6 pr-2 scrollbar">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center space-y-6">
-            <div className="p-8 border border-panel-raised bg-panel/20 rounded w-full">
-              <span className="font-mono text-[9px] text-cyan uppercase tracking-widest block mb-4">// CORE COGNITIVE GATE</span>
+            <div className="p-8 border border-panel-raised bg-panel/30 rounded-lg w-full">
+              <span className="font-mono text-[9px] text-cyan uppercase tracking-widest block mb-4">// COGNITIVE AI DIALOG</span>
               <p className="font-display text-sm font-semibold tracking-wide text-fog">Awaiting prompt parameters.</p>
               <p className="mt-2 text-xs text-mist font-sans">
                 Choose a suggested prompt below or type your custom query.
@@ -80,7 +112,7 @@ export default function ChatPage() {
                 <button
                   key={i}
                   onClick={() => sendMessage(prompt)}
-                  className="w-full text-left font-mono text-[11px] text-cyan hover:text-magenta border border-panel-raised hover:border-cyan/30 bg-panel/30 hover:bg-panel/50 px-4 py-2.5 rounded transition-all duration-200"
+                  className="w-full text-left font-mono text-[11px] text-cyan hover:text-magenta border border-panel-raised hover:border-cyan/35 bg-panel/30 hover:bg-panel-raised/55 px-4 py-3 rounded-md transition-all duration-200"
                 >
                   &gt; {prompt}
                 </button>
@@ -94,12 +126,18 @@ export default function ChatPage() {
           return (
             <div key={i} className={`flex flex-col ${isUser ? "items-end" : "items-start"} space-y-2`}>
               <div 
-                className={`max-w-[80%] rounded p-4 font-sans text-sm leading-relaxed border ${
+                className={`max-w-[80%] rounded-lg p-5 font-sans text-sm leading-relaxed border ${
                   isUser 
                     ? "bg-magenta/5 border-magenta/25 text-fog shadow-sm" 
-                    : "bg-panel/30 border-cyan/20 text-fog shadow-sm"
+                    : "bg-panel/45 border-cyan/20 text-fog shadow-sm"
                 }`}
               >
+                {!isUser && (
+                  <div className="flex justify-between items-center mb-2.5 border-b border-panel-raised/50 pb-1.5">
+                    <span className="font-mono text-[9px] text-cyan font-bold uppercase tracking-wider">// IDENTITY ENGINE</span>
+                    <CopyButton text={message.content} />
+                  </div>
+                )}
                 {message.content}
               </div>
 
@@ -112,7 +150,7 @@ export default function ChatPage() {
                     </summary>
                     <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-fade-in">
                       {message.sources.map((source, j) => (
-                        <div key={j} className="border border-panel-raised bg-void/50 p-2.5 rounded font-mono text-[10px] text-mist flex flex-col justify-between">
+                        <div key={j} className="border border-panel-raised bg-panel/40 p-3 rounded font-mono text-[10px] text-mist flex flex-col justify-between hover:border-cyan/30">
                           <span className="text-cyan truncate font-semibold block">{source.original_filename}</span>
                           <span className="text-[9px] text-mist/50 mt-1 block">Score: {Math.round(source.score * 100)}% Match</span>
                         </div>
@@ -138,18 +176,18 @@ export default function ChatPage() {
       </div>
 
       {/* Input box form */}
-      <form onSubmit={handleSubmit} className="flex gap-3 border-t border-panel-raised/40 pt-4">
+      <form onSubmit={handleSubmit} className="flex gap-3 border-t border-panel-raised/40 pt-4 pb-4">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="> query custom dossier params..."
-          className="flex-1 rounded-sm border border-panel-raised bg-panel/30 focus:bg-panel/50 px-4 py-3 font-mono text-xs text-fog placeholder:text-mist/50 focus:border-cyan focus:outline-none transition-all"
+          placeholder="> Query professional twin dossier parameters..."
+          className="flex-1 rounded-md border border-panel-raised bg-panel/30 focus:bg-panel-raised/60 px-4 py-3 font-mono text-xs text-fog placeholder:text-mist/50 focus:border-cyan focus:outline-none transition-all"
           disabled={sending}
         />
         <button
           type="submit"
           disabled={sending || !input.trim()}
-          className="rounded-sm border border-cyan/40 hover:border-cyan bg-cyan/5 hover:bg-cyan/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-cyan shadow-sm transition-all disabled:opacity-50"
+          className="rounded-md border border-cyan/40 hover:border-cyan bg-cyan/5 hover:bg-cyan/15 px-6 py-3 font-mono text-xs uppercase tracking-widest text-cyan shadow-sm transition-all disabled:opacity-50 font-bold"
         >
           Evaluate
         </button>

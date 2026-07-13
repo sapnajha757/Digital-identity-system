@@ -10,15 +10,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from db.neo4j import close_driver
 from db.qdrant import ensure_collection
-from routers import chat, documents, graph, search, timeline, insights, dashboard
+from db.postgres import async_session_factory
+from routers import chat, documents, graph, search, timeline, insights, dashboard, auth
+from routers.auth import get_or_create_demo_user
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: make sure the Qdrant collection exists before any request lands
+    # Startup: make sure local uploads dir exists
+    import os
+    os.makedirs("uploads", exist_ok=True)
+
     ensure_collection()
+
+    # Create demo user on first run
+    async with async_session_factory() as db:
+        try:
+            from sqlalchemy import text
+            await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS hashed_password TEXT;"))
+            await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();"))
+            await db.commit()
+
+            await get_or_create_demo_user(db)
+            print("[INFO] Local authentication: Demo user and database columns are ready.")
+        except Exception as e:
+            print(f"[ERROR] Failed to ensure demo user/schema: {e}")
+
     yield
     # Shutdown: close long-lived driver connections cleanly
     close_driver()
@@ -39,6 +58,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(documents.router)
 app.include_router(search.router)
 app.include_router(timeline.router)

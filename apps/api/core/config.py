@@ -23,11 +23,8 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "dis_password"
 
-    # Supabase
-    supabase_url: str = ""
-    supabase_service_key: str = ""
-    supabase_jwt_secret: str = ""
-    supabase_storage_bucket: str = "documents"
+    # Local Auth
+    jwt_secret: str = "local_dev_secret_key_1234567890"
 
     # LLM providers
     anthropic_api_key: str = ""

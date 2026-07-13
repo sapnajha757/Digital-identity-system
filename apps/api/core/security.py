@@ -1,24 +1,50 @@
 """
-Verifies Supabase-issued JWTs on incoming requests.
-Use `current_user` as a FastAPI dependency on any route that needs auth.
+Local Authentication Security Helpers and Dependencies.
 """
+import uuid
 import jwt
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta
 
 from core.config import get_settings
+from db.postgres import get_db
+from models.document import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
+def hash_password(password: str) -> str:
+    pw_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pw_bytes, salt)
+    return hashed.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        pw_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(pw_bytes, hashed_bytes)
+    except Exception:
+        return False
+
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=7)
+    to_encode.update({"exp": expire})
+    settings = get_settings()
+    return jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
 
 class CurrentUser:
     def __init__(self, auth_id: str, email: str | None):
         self.auth_id = auth_id
         self.email = email
 
-
-def current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> CurrentUser:
     if credentials is None:
         raise HTTPException(
@@ -26,40 +52,16 @@ def current_user(
             detail="Missing authorization token",
         )
 
-    import base64
     settings = get_settings()
-    payload = None
-    exceptions = []
-
-    # Attempt 1: Decode using the raw secret string
     try:
         payload = jwt.decode(
             credentials.credentials,
-            settings.supabase_jwt_secret,
+            settings.jwt_secret,
             algorithms=["HS256"],
-            audience="authenticated",
+            options={"verify_aud": False},
         )
     except jwt.PyJWTError as exc:
-        exceptions.append(f"Raw secret decoding failed: {exc}")
-
-    # Attempt 2: Decode using base64-decoded secret bytes (common for Supabase JWT secret)
-    if payload is None:
-        try:
-            # Add padding if needed
-            secret_str = settings.supabase_jwt_secret
-            padded_secret = secret_str + "=" * ((4 - len(secret_str) % 4) % 4)
-            decoded_secret = base64.b64decode(padded_secret)
-            payload = jwt.decode(
-                credentials.credentials,
-                decoded_secret,
-                algorithms=["HS256"],
-                audience="authenticated",
-            )
-        except Exception as exc:
-            exceptions.append(f"Base64-decoded secret decoding failed: {exc}")
-
-    if payload is None:
-        print(f"[DEBUG AUTH ERROR] JWT decoding failed. Errors: {exceptions}")
+        print(f"[DEBUG AUTH ERROR] JWT decoding failed: {exc}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -72,4 +74,16 @@ def current_user(
             detail="Token missing subject claim",
         )
 
-    return CurrentUser(auth_id=auth_id, email=payload.get("email"))
+    # Load user from PostgreSQL
+    result = await db.execute(select(User).where(User.auth_id == uuid.UUID(auth_id)))
+    db_user = result.scalar_one_or_none()
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found in local database",
+        )
+
+    return CurrentUser(auth_id=str(db_user.auth_id), email=db_user.email)
+
+# Alias current_user to get_current_user to avoid changing other routers
+current_user = get_current_user

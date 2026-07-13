@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { Orbitron, Rajdhani, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { AuthProvider } from "@/components/AuthProvider";
 
-const orbitron = Orbitron({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-orbitron",
+  variable: "--font-space-grotesk",
   weight: ["500", "600", "700"],
 });
 
-const rajdhani = Rajdhani({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-rajdhani",
+  variable: "--font-inter",
   weight: ["400", "500", "600"],
 });
 
@@ -23,8 +23,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IDENT.SYS — Digital Identity System",
-  description: "Your academic and professional journey, scanned, indexed, and connected.",
+  title: "IdentityOS — Professional Dossier & Knowledge Graph",
+  description: "AI-powered professional identity constructing your dynamic professional twin.",
 };
 
 export default function RootLayout({
@@ -33,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${orbitron.variable} ${rajdhani.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen font-body text-fog antialiased">
+    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="min-h-screen bg-void text-fog antialiased font-sans select-none overflow-x-hidden">
         <div className="scanlines" aria-hidden="true" />
         <div className="glow-orb glow-orb-cyan" aria-hidden="true" />
         <div className="glow-orb glow-orb-magenta" aria-hidden="true" />

@@ -1,35 +1,48 @@
 """
-Supabase Storage integration. The bucket holds raw files only —
-storage_path in Postgres is the single reference to where a file lives,
-so there's never a second copy of file location tracked anywhere else.
+Local filesystem storage integration. The uploads folder holds raw files only —
+storage_path in Postgres is the single reference to where a file lives.
 """
-from supabase import Client, create_client
+import os
+import pathlib
 
-from core.config import get_settings
+# Base directory for uploads is digital-identity-system/apps/api/uploads
+BASE_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+UPLOAD_DIR = BASE_DIR / "uploads"
 
-settings = get_settings()
-
-_client: Client | None = None
-
-
-def get_supabase_client() -> Client:
-    global _client
-    if _client is None:
-        _client = create_client(settings.supabase_url, settings.supabase_service_key)
-    return _client
+# Ensure upload directory exists
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def upload_file(file_bytes: bytes, storage_path: str, content_type: str) -> str:
-    """Uploads bytes to the configured bucket. Returns the storage_path used."""
-    client = get_supabase_client()
-    client.storage.from_(settings.supabase_storage_bucket).upload(
-        path=storage_path,
-        file=file_bytes,
-        file_options={"content-type": content_type, "upsert": "true"},
-    )
+    """Uploads bytes to the local uploads directory. Returns the storage_path used."""
+    file_path = UPLOAD_DIR / storage_path
+    # Ensure nested user directory is created
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "wb") as f:
+        f.write(file_bytes)
+
     return storage_path
 
 
 def download_file(storage_path: str) -> bytes:
-    client = get_supabase_client()
-    return client.storage.from_(settings.supabase_storage_bucket).download(storage_path)
+    """Downloads (reads) bytes from the local uploads directory."""
+    file_path = UPLOAD_DIR / storage_path
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {storage_path}")
+
+    with open(file_path, "rb") as f:
+        return f.read()
+
+
+def delete_file(storage_path: str) -> None:
+    """Deletes file from local storage if it exists."""
+    file_path = UPLOAD_DIR / storage_path
+    if file_path.exists():
+        os.remove(file_path)
+
+
+def file_exists(storage_path: str) -> bool:
+    """Checks if a file exists in local storage."""
+    file_path = UPLOAD_DIR / storage_path
+    return file_path.exists()
