@@ -85,8 +85,10 @@ export default function LandingPage() {
   const [demoGraph, setDemoGraph] = useState<any>({ nodes: [], edges: [] });
   const [demoScore, setDemoScore] = useState(0);
   const [demoTwin, setDemoTwin] = useState<string>("");
+  const [isTransitioningDemo, setIsTransitioningDemo] = useState(false);
 
   const handleExploreDemo = () => {
+    setIsTransitioningDemo(true);
     localStorage.setItem("dis_demo_mode", "true");
     localStorage.setItem("dis_session", JSON.stringify({
       access_token: "mock-token",
@@ -94,7 +96,9 @@ export default function LandingPage() {
     }));
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new Event("demo-mode-changed"));
-    router.push("/dashboard");
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1800);
   };
 
   // UI Interactive Elements
@@ -330,7 +334,7 @@ export default function LandingPage() {
               onClick={handleExploreDemo}
               className="w-full sm:w-auto px-8 py-3.5 border border-magenta/40 hover:border-magenta text-fog hover:text-magenta bg-magenta/5 rounded-md font-mono text-xs tracking-wider transition-all shadow-glow-magenta/20"
             >
-              ⚡ Explore Demo Preset
+              ⚡ Explore Demo Workspace
             </button>
             <button
               onClick={triggerDemo}
@@ -721,6 +725,31 @@ export default function LandingPage() {
         <p>© 2026 IDENTITYOS. DIGITAL IDENTITY OPERATING SYSTEM. ALL RIGHTS RESERVED.</p>
         <p className="mt-1">POWERED BY FASTAPI, NEXTJS, NEO4J & QDRANT CORE SERVICES.</p>
       </footer>
+
+      <AnimatePresence>
+        {isTransitioningDemo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[#07090F]/90 backdrop-blur-md flex flex-col items-center justify-center space-y-6"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+              className="w-16 h-16 border-4 border-t-cyan border-r-transparent border-b-magenta border-l-transparent rounded-full shadow-[0_0_20px_rgba(0,240,255,0.3)]"
+            />
+            <div className="text-center space-y-2">
+              <h3 className="font-display text-lg font-black uppercase text-fog tracking-widest">
+                Populating Identity Workspace
+              </h3>
+              <p className="font-mono text-[10px] text-mist tracking-wider animate-pulse">
+                SYS_INIT: Loading 30+ Documents & 250+ Neo4j Relations...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

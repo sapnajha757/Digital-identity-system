@@ -126,7 +126,7 @@ export function Sidebar({ onStartStoryMode }: SidebarProps) {
 
       {/* Nav Links */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto" aria-label="Main Navigation">
-        {SECTIONS.map((section) => {
+        {(presentationMode ? SECTIONS.filter(s => ["/dashboard", "/portfolio", "/auditors"].includes(s.href)) : SECTIONS).map((section) => {
           const active = pathname === section.href;
           return (
             <Link

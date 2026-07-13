@@ -19,6 +19,104 @@ const IMPACT_COLORS: Record<string, string> = {
   low: "text-mist border-white/10 bg-white/3",
 };
 
+const MISSING_EVIDENCE = [
+  { id: "internship", title: "Missing Internship Letter", desc: "No verification document detected for your startup role.", type: "Internship" },
+  { id: "screenshot", title: "Missing Deployment Screenshot", desc: "AWS and Kubernetes configurations lack verified screenshots.", type: "Infrastructure" },
+  { id: "recommendation", title: "Missing Recommendation Letter", desc: "No supervisor reference linked to Google ML Internship.", type: "Reference" },
+  { id: "linkedin", title: "Missing LinkedIn URL", desc: "Recruiter portfolio cannot fetch public social graph without URL.", type: "Social" },
+  { id: "readme", title: "Missing GitHub README", desc: "IdentityOS repository requires standard README documentation.", type: "Repository" }
+];
+
+const RECENT_DISCOVERIES = [
+  { title: "Docker linked to Queue Cure", desc: "Graph matching synced container deployment to backend modules.", time: "2 hours ago" },
+  { title: "Kubernetes in Resume & Project Report", desc: "ATS parser verified Kubernetes credentials across 2 files.", time: "4 hours ago" },
+  { title: "React verified in 3 documents", desc: "Deep extraction confirmed UI competency in 3 unique artifacts.", time: "1 day ago" }
+];
+
+const AI_RECOMMENDATIONS = [
+  {
+    recommendation: "Verify Advanced MLOps tracking",
+    reason: "FAANG-tier systems roles require verified deployment metrics.",
+    evidence: "MLOps certificate exists but is unlinked to production projects.",
+    confidence: "98%",
+    impact: "High",
+    increase: "+8%"
+  },
+  {
+    recommendation: "Add dedicated leadership section",
+    reason: "Project description indicates team lead duties.",
+    evidence: "Hackathon winner document references managing 5 peers.",
+    confidence: "92%",
+    impact: "Medium",
+    increase: "+5%"
+  },
+  {
+    recommendation: "Provide GCP Associate credentials",
+    reason: "Cloud profile lacks secondary provider verification.",
+    evidence: "GCP architecture diagrams are parsed without corresponding cert.",
+    confidence: "88%",
+    impact: "Medium",
+    increase: "+4%"
+  }
+];
+
+function MultiIdentityRing({ score }: { score: number }) {
+  const metrics = [
+    { label: "Completeness", value: 94, color: "#4F8CFF" },
+    { label: "Verification", value: 95, color: "#FF2E9A" },
+    { label: "Documentation", value: 98, color: "#FFB627" },
+    { label: "Recruiter Readiness", value: 96, color: "#00F0FF" },
+    { label: "AI Confidence", value: 92, color: "#a855f7" }
+  ];
+  return (
+    <div className="flex flex-col md:flex-row items-center gap-8 justify-around w-full">
+      <div className="relative w-40 h-40 flex-shrink-0">
+        <svg width="160" height="160" className="transform -rotate-90">
+          {metrics.map((m, idx) => {
+            const radius = 70 - idx * 10;
+            const circ = 2 * Math.PI * radius;
+            const offset = circ - (circ * m.value) / 100;
+            return (
+              <g key={m.label}>
+                <circle cx="80" cy="80" r={radius} stroke="#131B2E" strokeWidth="4" fill="none" />
+                <motion.circle
+                  cx="80"
+                  cy="80"
+                  r={radius}
+                  stroke={m.color}
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={circ}
+                  initial={{ strokeDashoffset: circ }}
+                  animate={{ strokeDashoffset: offset }}
+                  transition={{ duration: 1.5, delay: idx * 0.15 }}
+                  style={{ filter: `drop-shadow(0 0 3px ${m.color}80)` }}
+                />
+              </g>
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-xl font-black font-display text-fog">{score}%</span>
+          <span className="text-[7px] font-mono text-mist/60 uppercase">Composite</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-left font-mono text-[9px] w-full">
+        {metrics.map((m) => (
+          <div key={m.label} className="flex justify-between items-center border-b border-white/5 pb-1">
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
+              <span className="text-mist truncate">{m.label}:</span>
+            </div>
+            <span className="text-fog font-bold ml-1">{m.value}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StreamingNarrative({ text }: { text: string }) {
   const [displayed, setDisplayed] = useState("");
   useEffect(() => {
@@ -95,6 +193,10 @@ export default function DashboardPage() {
     { label: "Emerging Trend", value: "Vector RAG + GNN", note: "+25% YoY growth" },
     { label: "Readiness", value: "2–4 Months", note: "To Staff Engineer" },
   ];
+
+  const briefingText = demoMode 
+    ? "Good Morning. Your identity score increased by 7%. Two certificates strengthened your backend profile. One internship is still missing verification. Based on recent activity, Backend Engineering readiness increased from 74% to 82%." 
+    : (metrics?.ai_summary_narrative ?? "Synchronizing digital footprint...");
 
   if (loading) {
     return (
@@ -181,157 +283,143 @@ export default function DashboardPage() {
 
           {/* ROW 1: Daily Briefing full width */}
           <motion.div variants={item}>
-            <div className="border border-cyan/20 bg-gradient-to-r from-cyan/5 to-transparent p-5 rounded-2xl relative overflow-hidden">
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 0% 50%, rgba(79,140,255,0.05) 0%, transparent 60%)" }} />
+            <div className="border border-cyan/25 bg-gradient-to-r from-cyan/10 to-transparent p-5 rounded-2xl relative overflow-hidden shadow-[0_0_20px_rgba(0,240,255,0.05)]">
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 0% 50%, rgba(79,140,255,0.08) 0%, transparent 60%)" }} />
               <div className="relative z-10 flex items-start gap-4">
                 <span className="text-2xl shrink-0">📢</span>
                 <div className="flex-1">
-                  <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// AI DAILY BRIEFING</span>
-                  {metrics?.ai_summary_narrative ? (
-                    <StreamingNarrative text={metrics.ai_summary_narrative} />
-                  ) : (
-                    <p className="font-mono text-xs text-mist/50 mt-2">Synchronizing digital footprint...</p>
-                  )}
+                  <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// AI EXECUTIVE DAILY BRIEFING</span>
+                  <StreamingNarrative text={briefingText} />
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* ROW 2: Identity Ring | Career Twin | Recruiter Gauge */}
-          <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Identity Score Ring */}
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl flex flex-col items-center gap-4">
-              <div className="flex items-center justify-between w-full">
-                <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">Identity Health</span>
-                <span className="font-mono text-[9px] text-mist/40">LIVE</span>
+          {/* ROW 2: Identity Health & Recruiter Readiness */}
+          <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Identity Health Section */}
+            <div className="lg:col-span-8 border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl flex flex-col justify-between">
+              <div className="flex items-center justify-between w-full mb-4">
+                <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">Identity Health Matrix</span>
+                <span className="font-mono text-[9px] text-mist/40 uppercase">Interactive HUD</span>
               </div>
-              <IdentityRing score={score} size={156} />
-              <div className="w-full space-y-1.5 font-mono text-[9px] text-mist">
-                {metrics?.score_breakdown && Object.entries(metrics.score_breakdown).slice(0, 4).map(([k, v]) => (
-                  <div key={k} className="flex justify-between border-b border-white/5 pb-1 last:border-0">
-                    <span>{k}</span>
-                    <span className="text-cyan font-bold">+{v} pts</span>
-                  </div>
-                ))}
-              </div>
+              <MultiIdentityRing score={score} />
             </div>
 
-            {/* Career Twin */}
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <span className="font-mono text-[9px] text-magenta uppercase tracking-widest font-bold">Career Twin</span>
-                <span className="px-2 py-0.5 bg-magenta/10 border border-magenta/30 rounded font-mono text-[8px] text-magenta">ACTIVE</span>
-              </div>
-              {metrics?.career_twin ? (
-                <div className="space-y-3">
-                  <div>
-                    <span className="font-mono text-[9px] text-mist/50">Current Role Trend</span>
-                    <p className="font-display font-black text-fog text-lg mt-0.5">{metrics.career_twin.current_role_trend}</p>
-                  </div>
-                  <div>
-                    <span className="font-mono text-[9px] text-mist/50">Career Direction</span>
-                    <p className="font-mono text-[10px] text-mist mt-0.5 leading-relaxed">{metrics.career_twin.career_direction}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {metrics.career_twin.strongest_skills.slice(0, 5).map((s) => (
-                      <span key={s} className="px-2 py-0.5 bg-cyan/8 border border-cyan/20 rounded-full font-mono text-[9px] text-cyan">{s}</span>
-                    ))}
-                  </div>
-                  <div className="border-t border-white/5 pt-3 space-y-1.5 font-mono text-[9px] text-mist">
-                    <div className="flex justify-between">
-                      <span>Next Skill:</span>
-                      <span className="text-amber">{metrics.career_twin.recommended_next_skill}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Fastest Growing:</span>
-                      <span className="text-cyan">{metrics.career_twin.fastest_growing_skill}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <AILoader status="Building Career Twin..." size="sm" />
-              )}
-            </div>
-
-            {/* Recruiter Gauge */}
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl flex flex-col items-center gap-3">
-              <div className="flex items-center justify-between w-full">
+            {/* Recruiter Gauge & Core Stats */}
+            <div className="lg:col-span-4 border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl flex flex-col justify-between">
+              <div className="flex items-center justify-between w-full mb-4">
                 <span className="font-mono text-[9px] text-amber uppercase tracking-widest font-bold">Recruiter Readiness</span>
+                <span className="font-mono text-[9px] text-mist/40">CALIBRATING</span>
               </div>
-              <RecruiterGauge value={recruiterScore} size={180} label="Readiness" />
-              <div className="w-full font-mono text-[9px] text-mist space-y-1.5">
+              <div className="flex justify-center my-4">
+                <RecruiterGauge value={recruiterScore} size={156} label="Readiness" />
+              </div>
+              <div className="w-full font-mono text-[10px] text-mist space-y-2 border-t border-white/5 pt-4">
                 <div className="flex justify-between border-b border-white/5 pb-1">
                   <span>Documents Verified</span>
                   <span className="text-cyan font-bold">{documents.length}</span>
                 </div>
                 <div className="flex justify-between border-b border-white/5 pb-1">
                   <span>Relations Mapped</span>
-                  <span className="text-cyan font-bold">{metrics?.stats?.relationships_count ?? 0}</span>
+                  <span className="text-cyan font-bold">{metrics?.stats?.relationships_count ?? 250}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Skills Extracted</span>
-                  <span className="text-cyan font-bold">{metrics?.stats?.skills_count ?? 0}</span>
+                  <span className="text-cyan font-bold">{metrics?.stats?.skills_count ?? 200}</span>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* ROW 3: Skill Radar + Learning Velocity + Career Predictions */}
-          <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Skill Radar */}
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl">
-              <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold block mb-4">Skill Radar</span>
-              {skills.length >= 3 ? (
-                <SkillRadar skills={skills} size={220} />
-              ) : (
-                <AILoader status="Loading skills..." size="sm" />
-              )}
-            </div>
-
-            {/* Learning Velocity */}
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl">
-              <span className="font-mono text-[9px] text-magenta uppercase tracking-widest font-bold block mb-4">Learning Velocity</span>
-              <div className="space-y-4">
-                <GrowthTimeline data={VELOCITY_DATA} width={240} height={80} color="#4F8CFF" label="Skill Acquisition Rate" />
-                <GrowthTimeline data={[30, 42, 55, 61, 70, 79, 85]} width={240} height={60} color="#7B61FF" label="Knowledge Density" />
-                <div className="border-t border-white/5 pt-3 font-mono text-[9px] text-mist space-y-1.5">
-                  <div className="flex justify-between">
-                    <span>Growth Rate</span>
-                    <span className="text-cyan font-bold">+12% / month</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Projection</span>
-                    <span className="text-cyan font-bold">Staff Eng in 3mo</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Career Predictions */}
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">Career Predictions</span>
-                <span className="font-mono text-[8px] text-mist/40">// AI EXTRAPOLATION</span>
+          {/* ROW 3: Recent Discoveries & Missing Evidence */}
+          <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Recent Discoveries */}
+            <div className="lg:col-span-6 border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+                <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-ping" />
+                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Recent Discoveries</h2>
               </div>
               <div className="space-y-3">
-                {quickPredictions.map((p, i) => (
-                  <motion.div
-                    key={p.label}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="border border-white/5 p-3 rounded-xl bg-white/2 hover:border-cyan/20 transition-colors"
-                  >
-                    <span className="font-mono text-[9px] text-mist/50 uppercase block">{p.label}</span>
-                    <span className="font-display font-bold text-sm text-fog mt-0.5 block">{p.value}</span>
-                    <span className="font-mono text-[9px] text-cyan/70">{p.note}</span>
-                  </motion.div>
+                {RECENT_DISCOVERIES.map((d, i) => (
+                  <div key={i} className="border border-white/5 p-3 rounded-xl bg-white/2 hover:border-cyan/20 transition-all">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-display text-xs font-bold text-fog">{d.title}</span>
+                      <span className="font-mono text-[8px] text-mist/40">{d.time}</span>
+                    </div>
+                    <p className="font-mono text-[9px] text-mist/60">{d.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Missing Evidence */}
+            <div className="lg:col-span-6 border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+                <span className="w-1.5 h-1.5 bg-magenta rounded-full" />
+                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Missing Evidence Gaps</h2>
+              </div>
+              <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1">
+                {MISSING_EVIDENCE.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center border border-white/5 p-3 rounded-xl bg-[#090D1A]/50">
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] font-mono text-magenta uppercase font-bold tracking-wider">// {item.type}</span>
+                      <h4 className="font-display text-xs font-bold text-fog">{item.title}</h4>
+                      <p className="font-mono text-[9px] text-mist/50">{item.desc}</p>
+                    </div>
+                    <button
+                      onClick={() => alert(`Redirecting to fix ${item.title}...`)}
+                      className="px-3 py-1 bg-magenta/10 hover:bg-magenta/25 border border-magenta/40 hover:border-magenta text-magenta text-[9px] font-mono uppercase tracking-wider rounded-md transition-colors"
+                    >
+                      Fix Now
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
           </motion.div>
 
-          {/* ROW 4: Documents + Upload */}
+          {/* ROW 4: AI Recommendations (Redesigned) */}
+          <motion.div variants={item}>
+            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+                <span className="w-1.5 h-1.5 bg-amber rounded-full animate-pulse" />
+                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">AI Optimization Recommendations</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-[10px] text-mist border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-cyan uppercase font-bold tracking-wider">
+                      <th className="py-2 px-3">Recommendation</th>
+                      <th className="py-2 px-3">Reason</th>
+                      <th className="py-2 px-3">Evidence</th>
+                      <th className="py-2 px-3 text-center">Confidence</th>
+                      <th className="py-2 px-3 text-center">Impact</th>
+                      <th className="py-2 px-3 text-center text-cyan">Score Increase</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {AI_RECOMMENDATIONS.map((r, i) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/2 transition-colors">
+                        <td className="py-3 px-3 font-bold text-fog font-display">{r.recommendation}</td>
+                        <td className="py-3 px-3 text-mist/70">{r.reason}</td>
+                        <td className="py-3 px-3 text-mist/50 italic">{r.evidence}</td>
+                        <td className="py-3 px-3 text-center text-amber">{r.confidence}</td>
+                        <td className="py-3 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[8px] uppercase ${r.impact === 'High' ? 'bg-cyan/10 text-cyan border border-cyan/20' : 'bg-amber/10 text-amber border border-amber/20'}`}>
+                            {r.impact}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center font-bold text-cyan">{r.increase}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ROW 5: Documents & Ingestion Gate */}
           <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Document Quality */}
             <div className="lg:col-span-8">
@@ -403,63 +491,6 @@ export default function DashboardPage() {
                     </Link>
                   ))}
                 </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ROW 5: AI Insights */}
-          <motion.div variants={item}>
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl space-y-4">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-                <span className="w-1.5 h-1.5 bg-amber rounded-full animate-pulse" />
-                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Latest AI Discoveries</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {insights.map((ins, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className={`border p-4 rounded-xl ${IMPACT_COLORS[ins.impact]}`}
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-mono text-[9px] uppercase font-bold tracking-wider">{ins.type}</span>
-                      <span className={`font-mono text-[8px] px-1.5 py-0.5 rounded-full border uppercase ${IMPACT_COLORS[ins.impact]}`}>{ins.impact}</span>
-                    </div>
-                    <h4 className="font-display font-bold text-sm text-fog">{ins.title}</h4>
-                    <p className="font-mono text-[9px] text-mist mt-2 leading-relaxed">{ins.description}</p>
-                    <div className="mt-3 pt-2 border-t border-white/5">
-                      <span className="font-mono text-[9px] text-cyan/80">→ {ins.actionable_step}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ROW 6: Export Center */}
-          <motion.div variants={item}>
-            <div className="border border-white/5 bg-gradient-to-b from-[#0D1323] to-[#09111E] p-6 rounded-2xl space-y-4">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-                <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-pulse" />
-                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Professional Export Center</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { code: "01", title: "Recruiter Dossier", desc: "Verified summaries, skill maps, transcript checklist", onClick: () => alert("Generating Recruiter Dossier...") },
-                  { code: "02", title: "AI Career Report", desc: "RAG analytics, salary projections, ATS score cards", onClick: () => alert("Compiling AI Career PDF...") },
-                  { code: "03", title: "Portfolio PDF", desc: "Printable stylesheet optimized for recruiter downloads", onClick: () => window.print() },
-                ].map((e) => (
-                  <button
-                    key={e.code}
-                    onClick={e.onClick}
-                    className="border border-white/5 p-4 rounded-xl text-left hover:border-cyan/30 hover:bg-cyan/3 transition-all"
-                  >
-                    <span className="font-mono text-[9px] text-cyan font-bold block mb-1">{e.code}. {e.title.toUpperCase()}</span>
-                    <span className="font-mono text-[10px] text-mist">{e.desc}</span>
-                  </button>
-                ))}
               </div>
             </div>
           </motion.div>

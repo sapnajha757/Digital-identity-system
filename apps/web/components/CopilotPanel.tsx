@@ -42,6 +42,7 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const [typing, setTyping] = useState(false);
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set());
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [showToast, setShowToast] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,6 +56,10 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         timestamp: new Date().toISOString(),
       },
     ]);
+    
+    // Proactive toast after 2.5 seconds
+    const timer = setTimeout(() => setShowToast(true), 2500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -100,9 +105,36 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const memory = getMemory();
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
+    <>
+      <AnimatePresence>
+        {showToast && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-50 bg-[#090D1A] border border-red-500/30 p-4 rounded-xl shadow-2xl shadow-red-500/10 flex items-start gap-3 w-80 cursor-pointer"
+            onClick={() => { setShowToast(false); }}
+          >
+            <div className="mt-0.5 text-red-400">⚠️</div>
+            <div className="flex-1">
+              <span className="font-mono text-[9px] text-red-400 font-bold uppercase tracking-widest block mb-1">Proactive Warning</span>
+              <p className="text-xs text-fog leading-relaxed">
+                Your <span className="text-white font-bold">AWS Solutions Architect</span> certificate expires in 30 days. Recommend adding new study material.
+              </p>
+            </div>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowToast(false); }}
+              className="text-mist/50 hover:text-white"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.4 }}
@@ -190,6 +222,20 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         <div className="font-mono text-[8px] text-mist/50 uppercase mt-0.5">{stat.label}</div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Proactive Warning */}
+                  <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <div className="text-red-400 text-lg mt-0.5">⚠️</div>
+                    <div>
+                      <span className="font-mono text-[9px] text-red-400 font-bold uppercase tracking-widest block mb-1">Certification Expiring</span>
+                      <p className="text-[11px] text-fog leading-relaxed">
+                        Your AWS Solutions Architect certificate expires in 30 days. We recommend generating a targeted study plan and booking your renewal exam.
+                      </p>
+                      <button className="mt-3 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-mono text-[9px] uppercase tracking-wider rounded transition-colors">
+                        Generate Study Plan
+                      </button>
+                    </div>
                   </div>
 
                   {/* Top recommendations preview */}
@@ -435,5 +481,6 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         </>
       )}
     </AnimatePresence>
+    </>
   );
 }

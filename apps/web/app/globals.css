@@ -154,6 +154,16 @@ body {
   }
 }
 
+/* Node floating animation */
+.animate-node-float {
+  animation: node-float 6s ease-in-out infinite alternate;
+}
+@keyframes node-float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
+}
+
 /* === SKELETON / SHIMMER LOADING === */
 .skeleton {
   background: linear-gradient(

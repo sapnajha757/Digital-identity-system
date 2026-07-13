@@ -1,226 +1,231 @@
 "use client";
 
 import { useState } from "react";
-import { HudFrame } from "@/components/HudFrame";
+import { motion, AnimatePresence } from "framer-motion";
 
-export default function AuditorsPage() {
-  const [activeTab, setActiveTab] = useState<"resume" | "portfolio">("resume");
+interface Bullet {
+  id: number;
+  original: string;
+  improved: string;
+  improvedStatus: boolean;
+  impact: string;
+}
 
-  // Resume Auditor State variables
-  const resumeScore = 88;
-  const missingKeywords = ["Kubernetes", "CI/CD Pipeline", "MLOps", "Microservices"];
-  const actionVerbs = ["Architected", "Spearheaded", "Calibrated", "Optimized", "Synthesized"];
+export default function ResumeLabPage() {
+  const [atsScore, setAtsScore] = useState(78);
+  const [bullets, setBullets] = useState<Bullet[]>([
+    {
+      id: 1,
+      original: "Worked on ML models and backend API modules.",
+      improved: "Spearheaded deep learning training pipelines and optimized FastAPI endpoints, cutting inference response latency by 35%.",
+      improvedStatus: false,
+      impact: "No numeric evidence. Fails to describe technical scale or metrics."
+    },
+    {
+      id: 2,
+      original: "Helped write some frontend dashboards.",
+      improved: "Architected responsive telemetry dashboards using React and Tailwind CSS, resulting in a 42% increase in page interaction velocity.",
+      improvedStatus: false,
+      impact: "Weak action verb. Lacks quantitative loading speed and layout efficiency metrics."
+    },
+    {
+      id: 3,
+      original: "Set up container deployments.",
+      improved: "Orchestrated multi-region Docker configurations and Kubernetes cluster structures, reducing local setup boot cycles by 50%.",
+      improvedStatus: false,
+      impact: "Vague infrastructure detail. Fails to clarify scale, cluster nodes, or runtime specs."
+    }
+  ]);
 
-  // Portfolio Auditor State variables
-  const portfolioScore = 92;
-  const projectComplexity = "High";
-  const readmeStatus = "95% (Excellent)";
+  const missingKeywords = ["Kubernetes", "CI/CD Pipeline", "MLOps Engine", "GNN Architectures", "Microservices"];
+  const matchedKeywords = ["Python", "FastAPI", "Docker", "Neo4j", "React", "TypeScript", "PostgreSQL"];
+
+  const handleImproveBullet = (id: number) => {
+    setBullets((prev) =>
+      prev.map((b) => {
+        if (b.id === id && !b.improvedStatus) {
+          setAtsScore((score) => Math.min(98, score + 6));
+          return { ...b, improvedStatus: true };
+        }
+        return b;
+      })
+    );
+  };
+
+  const handleAddKeyword = (kw: string) => {
+    alert(`Successfully synced and indexed "${kw}" keyword chunk to parser vector schema.`);
+    setAtsScore((score) => Math.min(98, score + 4));
+  };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 md:px-10 bg-void text-fog min-h-screen space-y-8">
+    <div className="mx-auto max-w-6xl px-6 py-8 md:px-10 bg-void text-fog min-h-screen space-y-8">
       {/* Header */}
       <div className="border-b border-panel-raised/40 pb-4">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-magenta">// 05 — INTELLECTUAL AUDIT AGENT</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-magenta">// 05 — RESUME INTELLIGENCE LAB</p>
         <h1 className="mt-2 font-display text-2xl md:text-3xl font-black uppercase tracking-wider text-fog">
-          AI Professional Auditor
+          AI Resume Lab
         </h1>
         <p className="mt-1 text-xs text-mist leading-relaxed font-sans max-w-xl">
-          Evaluate ATS keywords compatibility, design architectures parameters, and project complexity indexes grounded in verified document uploads.
+          Evaluate keyword coverage algorithms, diagnose qualitative weaknesses, and run one-click transformations grounded in quantitative recruiters expectations.
         </p>
       </div>
 
-      {/* Tabs bar */}
-      <div className="flex gap-2 border-b border-panel-raised/40 pb-2">
-        <button
-          onClick={() => setActiveTab("resume")}
-          className={`px-4 py-2 font-mono text-xs uppercase transition-all border-b-2 ${
-            activeTab === "resume" ? "border-cyan text-cyan font-bold" : "border-transparent text-mist hover:text-fog"
-          }`}
-        >
-          Resume Auditor
-        </button>
-        <button
-          onClick={() => setActiveTab("portfolio")}
-          className={`px-4 py-2 font-mono text-xs uppercase transition-all border-b-2 ${
-            activeTab === "portfolio" ? "border-cyan text-cyan font-bold" : "border-transparent text-mist hover:text-fog"
-          }`}
-        >
-          Portfolio Auditor
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Side: Score & Core Metrics */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* ATS Score Card */}
+          <div className="border border-white/5 bg-[#090D1A] p-6 rounded-2xl text-center space-y-4">
+            <span className="font-mono text-[9px] text-cyan uppercase tracking-widest block">// ATS SCORE PROFILE</span>
+            <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
+              <svg width="128" height="128" className="transform -rotate-90">
+                <circle cx="64" cy="64" r="54" stroke="#131B2E" strokeWidth="8" fill="none" />
+                <motion.circle
+                  cx="64"
+                  cy="64"
+                  r="54"
+                  stroke="#00F0FF"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 54}
+                  strokeDashoffset={2 * Math.PI * 54 - (2 * Math.PI * 54 * atsScore) / 100}
+                  transition={{ duration: 0.8 }}
+                  style={{ filter: "drop-shadow(0 0 5px rgba(0,240,255,0.4))" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-black text-fog">{atsScore}</span>
+                <span className="text-[8px] font-mono text-mist/60 uppercase">Index Rating</span>
+              </div>
+            </div>
+            <div className="text-xs font-mono text-mist">
+              Status: <span className={atsScore > 85 ? "text-cyan font-bold" : "text-amber"}>{atsScore > 85 ? "FAANG-Ready" : "Needs Optimization"}</span>
+            </div>
+          </div>
+
+          {/* Keyword Coverage */}
+          <div className="border border-white/5 bg-[#090D1A] p-6 rounded-2xl space-y-4">
+            <span className="font-mono text-[9px] text-magenta uppercase tracking-widest block border-b border-white/5 pb-2">
+              // Keyword Coverage Analyzer
+            </span>
+            
+            {/* Missing */}
+            <div className="space-y-2">
+              <span className="font-mono text-[8px] text-magenta uppercase block">Missing Keywords:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {missingKeywords.map((kw, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAddKeyword(kw)}
+                    className="px-2.5 py-1 bg-magenta/5 border border-magenta/30 hover:border-magenta hover:bg-magenta/10 text-magenta font-mono text-[9px] rounded-lg transition-all"
+                    title="Inject keyword into parser model"
+                  >
+                    + {kw}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Matched */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <span className="font-mono text-[8px] text-cyan uppercase block">Matched Keywords:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {matchedKeywords.map((kw, i) => (
+                  <span key={i} className="px-2.5 py-1 bg-cyan/5 border border-cyan/20 text-cyan font-mono text-[9px] rounded-lg">
+                    ✓ {kw}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Impact Diagnostics */}
+          <div className="border border-white/5 bg-[#090D1A] p-6 rounded-2xl space-y-3 font-mono text-[10px] text-mist">
+            <span className="font-mono text-[9px] text-cyan uppercase tracking-widest block border-b border-white/5 pb-2">// Impact Analysis</span>
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span>Quantitative Evidence:</span>
+              <span className="text-magenta font-bold">Weak (Missing 3/5)</span>
+            </div>
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span>Verb Strength Score:</span>
+              <span className="text-cyan font-bold">Good (82%)</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Layout ATS Checker:</span>
+              <span className="text-cyan font-bold">Compliant</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Weak Bullets Analyzer */}
+        <div className="lg:col-span-8 border border-white/5 bg-[#090D1A] p-6 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
+            <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// Qualitative Bullets Tuner</span>
+            <span className="font-mono text-[8px] text-mist/40 uppercase">Grounded Transformations</span>
+          </div>
+
+          <div className="space-y-5">
+            {bullets.map((b) => (
+              <div key={b.id} className="border border-white/5 p-4 rounded-xl bg-void/50 space-y-3 relative overflow-hidden">
+                <div className="flex justify-between items-center text-[9px] font-mono border-b border-white/5 pb-1.5">
+                  <span className="text-magenta uppercase font-bold">Bullet Assessment #{b.id}</span>
+                  <span className={`px-2 py-0.5 rounded ${b.improvedStatus ? "bg-cyan/15 text-cyan border border-cyan/30" : "bg-amber/15 text-amber border border-amber/30"}`}>
+                    {b.improvedStatus ? "Improved" : "Weakness Identified"}
+                  </span>
+                </div>
+
+                <div className="space-y-2 font-sans text-xs">
+                  <div>
+                    <span className="font-mono text-[8.5px] text-mist/50 block uppercase">// Original Draft</span>
+                    <p className={`mt-0.5 leading-relaxed text-mist ${b.improvedStatus ? "line-through opacity-40" : "text-fog"}`}>
+                      {b.original}
+                    </p>
+                  </div>
+
+                  <AnimatePresence>
+                    {!b.improvedStatus && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="text-[10px] text-amber/80 font-mono italic leading-relaxed"
+                      >
+                        ⚠️ Assessment: {b.impact}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {b.improvedStatus && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-t border-cyan/10 pt-2.5 mt-2 space-y-1"
+                      >
+                        <span className="font-mono text-[8.5px] text-cyan block uppercase">// Upgraded Transform</span>
+                        <p className="text-cyan font-semibold leading-relaxed font-sans">
+                          {b.improved}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {!b.improvedStatus && (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => handleImproveBullet(b.id)}
+                      className="px-3.5 py-1.5 bg-cyan/10 hover:bg-cyan/20 border border-cyan/35 text-cyan text-[10px] font-mono uppercase tracking-wider rounded-lg transition-colors font-bold"
+                    >
+                      ⚡ Fix Instantly
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-
-      {activeTab === "resume" ? (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start animate-fade-in">
-          {/* Main audit metrics */}
-          <div className="md:col-span-8 space-y-6">
-            <HudFrame accent="cyan" className="bg-panel/40 p-6 rounded-lg border border-panel-raised">
-              <h2 className="font-display text-sm font-bold uppercase tracking-wider text-fog border-b border-panel-raised/50 pb-2 mb-4">
-                📈 ATS Keyword Match Assessment
-              </h2>
-              <div className="space-y-4 font-sans text-xs text-mist">
-                <div className="flex justify-between items-center bg-void/50 p-4 border border-panel-raised rounded">
-                  <div>
-                    <span className="font-mono text-[10px] text-cyan block mb-1">// ATS SCORES INDEX</span>
-                    <p className="text-[11px] text-mist/60 leading-normal">Evaluates structural keywords density based on target AI Developer profiles.</p>
-                  </div>
-                  <span className="font-display text-3xl font-bold text-cyan">{resumeScore}/100</span>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="font-mono text-[9px] text-magenta uppercase font-bold tracking-wider">// missing technologies identified</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {missingKeywords.map((word, idx) => (
-                      <span key={idx} className="bg-magenta/5 border border-magenta/30 text-magenta text-[9px] px-2 py-0.5 rounded font-mono">
-                        {word}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-mist/60 mt-1">
-                    💡 Tip: Integrate these keywords into your Resume project descriptions to rank higher in recruiter screenings.
-                  </p>
-                </div>
-
-                <div className="space-y-2 border-t border-panel-raised/40 pt-4">
-                  <span className="font-mono text-[9px] text-cyan uppercase font-bold tracking-wider">// recommended action verbs</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {actionVerbs.map((verb, idx) => (
-                      <span key={idx} className="bg-cyan/5 border border-cyan/30 text-cyan text-[9px] px-2 py-0.5 rounded font-mono">
-                        {verb}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </HudFrame>
-
-            <HudFrame accent="magenta" className="bg-panel/40 p-6 rounded-lg border border-panel-raised space-y-4">
-              <h2 className="font-display text-sm font-bold uppercase tracking-wider text-fog border-b border-panel-raised/50 pb-2">
-                ✍️ Structural Formatting Checks
-              </h2>
-              <div className="space-y-3 font-mono text-[11px] text-mist">
-                <div className="flex justify-between items-center border-b border-panel-raised/30 pb-2">
-                  <span>Contact Information & Email:</span>
-                  <span className="text-cyan font-bold">✓ Verified</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-panel-raised/30 pb-2">
-                  <span>Linked Social Profiles URL:</span>
-                  <span className="text-cyan font-bold">✓ Verified</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-panel-raised/30 pb-2">
-                  <span>Project Bullet Achievements:</span>
-                  <span className="text-magenta font-bold">⚠️ Needs Quantitative Data</span>
-                </div>
-              </div>
-              <p className="text-[10.5px] font-sans text-mist/60 leading-normal">
-                Evidence extracted from <span className="text-cyan font-mono">Resume.pdf</span> indicates that while technical projects are detailed, adding performance improvements metrics (e.g. &quot;optimized query latency by 40%&quot;) would enhance impact.
-              </p>
-            </HudFrame>
-          </div>
-
-          {/* Checklist side panel */}
-          <div className="md:col-span-4">
-            <HudFrame accent="cyan" className="bg-panel/40 p-5 rounded-lg border border-panel-raised space-y-4">
-              <h3 className="font-display text-xs font-bold uppercase tracking-wider text-fog border-b border-panel-raised/50 pb-2">
-                📝 ATS Optimizer checklist
-              </h3>
-              <div className="space-y-3 font-mono text-[10px] text-mist">
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" defaultChecked className="mt-0.5 accent-cyan" />
-                  <span>Verify document OCR flow status</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" defaultChecked className="mt-0.5 accent-cyan" />
-                  <span>Map project items to Skill tags</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" className="mt-0.5 accent-cyan" />
-                  <span>Integrate missing MLOps framework tag</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" className="mt-0.5 accent-cyan" />
-                  <span>Add links to deployed web applications</span>
-                </div>
-              </div>
-            </HudFrame>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start animate-fade-in">
-          {/* Portfolio Auditor */}
-          <div className="md:col-span-8 space-y-6">
-            <HudFrame accent="cyan" className="bg-panel/40 p-6 rounded-lg border border-panel-raised">
-              <h2 className="font-display text-sm font-bold uppercase tracking-wider text-fog border-b border-panel-raised/50 pb-2 mb-4">
-                🛡️ Portfolio Quality Diagnostics
-              </h2>
-              <div className="space-y-4 font-sans text-xs text-mist">
-                <div className="flex justify-between items-center bg-void/50 p-4 border border-panel-raised rounded">
-                  <div>
-                    <span className="font-mono text-[10px] text-cyan block mb-1">// QUALITY INDEX SCORE</span>
-                    <p className="text-[11px] text-mist/60 leading-normal">Evaluates public documentation clarity, repository structure, and live deployment urls.</p>
-                  </div>
-                  <span className="font-display text-3xl font-bold text-cyan">{portfolioScore}/100</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 font-mono text-[11px]">
-                  <div className="border border-panel-raised p-3 rounded bg-void/30">
-                    <span className="text-mist block text-[8px] uppercase font-bold">// project diversity</span>
-                    <span className="block text-fog font-bold mt-1">Excellent (4 domains)</span>
-                  </div>
-                  <div className="border border-panel-raised p-3 rounded bg-void/30">
-                    <span className="text-mist block text-[8px] uppercase font-bold">// documentation clarity</span>
-                    <span className="block text-fog font-bold mt-1">{readmeStatus}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 border-t border-panel-raised/40 pt-4">
-                  <span className="font-mono text-[9px] text-magenta uppercase font-bold tracking-wider block">// areas for optimization</span>
-                  <div className="space-y-2 font-mono text-[10px] text-mist">
-                    <div className="flex justify-between border-b border-panel-raised/35 pb-1">
-                      <span>Live Demo URLs:</span>
-                      <span className="text-magenta font-bold">2 Missing</span>
-                    </div>
-                    <div className="flex justify-between border-b border-panel-raised/35 pb-1">
-                      <span>Architecture Diagrams:</span>
-                      <span className="text-cyan font-bold">Linked (1 project)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </HudFrame>
-
-            <HudFrame accent="magenta" className="bg-panel/40 p-6 rounded-lg border border-panel-raised space-y-4">
-              <h2 className="font-display text-sm font-bold uppercase tracking-wider text-fog border-b border-panel-raised/50 pb-2">
-                📂 Grounded Evidence Sources
-              </h2>
-              <p className="text-[11px] font-sans text-mist leading-relaxed">
-                Auditor analysis is cross-referenced with your verified workspace repositories. In particular, <span className="text-cyan font-mono">React_Project_Report.pdf</span> and <span className="text-cyan font-mono">Portfolio.pdf</span> validate frontend design and layout credentials, while backend architectures were inferred from Neo4j node links.
-              </p>
-            </HudFrame>
-          </div>
-
-          <div className="md:col-span-4">
-            <HudFrame accent="cyan" className="bg-panel/40 p-5 rounded-lg border border-panel-raised space-y-4">
-              <h3 className="font-display text-xs font-bold uppercase tracking-wider text-fog border-b border-panel-raised/50 pb-2">
-                🚀 Innovation checklist
-              </h3>
-              <div className="space-y-3 font-mono text-[10px] text-mist">
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" defaultChecked className="mt-0.5 accent-cyan" />
-                  <span>Verify license parameters in repo</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" className="mt-0.5 accent-cyan" />
-                  <span>Embed Mermaid architecture flowchart</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <input type="checkbox" className="mt-0.5 accent-cyan" />
-                  <span>Link verified cloud certificate credentials</span>
-                </div>
-              </div>
-            </HudFrame>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

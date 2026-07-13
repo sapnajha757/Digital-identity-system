@@ -18,6 +18,35 @@ const NODE_COLOR: Record<string, { bg: string; border: string; glow: string; tex
   Education:    { bg: "#0A0E1A", border: "#4F8CFF", glow: "rgba(79,140,255,0.4)",  text: "#4F8CFF" },
 };
 
+function findShortestPath(nodes: any[], edges: any[], startId: string, endId: string): string[] {
+  if (startId === endId) return [startId];
+  const adj: Record<string, string[]> = {};
+  edges.forEach((e) => {
+    if (!adj[e.source]) adj[e.source] = [];
+    if (!adj[e.target]) adj[e.target] = [];
+    adj[e.source].push(e.target);
+    adj[e.target].push(e.source);
+  });
+  
+  const queue: string[][] = [[startId]];
+  const visited = new Set<string>([startId]);
+  
+  while (queue.length > 0) {
+    const path = queue.shift()!;
+    const node = path[path.length - 1];
+    if (node === endId) return path;
+    
+    const neighbors = adj[node] || [];
+    for (const next of neighbors) {
+      if (!visited.has(next)) {
+        visited.add(next);
+        queue.push([...path, next]);
+      }
+    }
+  }
+  return [];
+}
+
 function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; loading: boolean; error: string | null }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilters, setCategoryFilters] = useState<Record<string, boolean>>({
@@ -44,6 +73,13 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
     return ids;
   }, [activeFocusId, graph]);
 
+  // Shortest path between selected node and hovered node
+  const shortestPathSet = useMemo(() => {
+    if (!graph || !selectedNode || !hoveredNodeId) return new Set<string>();
+    const path = findShortestPath(graph.nodes, graph.edges, selectedNode.id, hoveredNodeId);
+    return new Set<string>(path);
+  }, [selectedNode, hoveredNodeId, graph]);
+
   const { nodes, edges } = useMemo(() => {
     if (!graph) return { nodes: [], edges: [] };
     const center = { x: 600, y: 400 };
@@ -65,6 +101,7 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
 
       const isFocused = activeFocusId === n.id;
       const isConnected = connectedNodeIds.has(n.id);
+      const isPartofShortestPath = shortestPathSet.has(n.id);
       const hasAnyFocus = activeFocusId !== null;
 
       let opacity = 1.0;
@@ -75,10 +112,13 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
         if (isFocused) {
           boxShadow = `0 0 28px ${colors.border}, 0 0 8px ${colors.border}`;
           borderStyle = `2px solid #ffffff`;
+        } else if (isPartofShortestPath) {
+          boxShadow = `0 0 30px #FFB627, 0 0 10px #FFB627`;
+          borderStyle = `2px solid #FFB627`;
         } else if (isConnected) {
           boxShadow = `0 0 18px ${colors.glow}`;
         } else {
-          opacity = 0.18;
+          opacity = 0.12;
         }
       }
 
@@ -93,7 +133,7 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
           y: center.y + nodeR * Math.sin(angle),
         },
         data: { label: n.label, type: n.type, properties: n.properties },
-        className: "animate-node-breathe",
+        className: "animate-node-breathe animate-node-float",
         style: {
           background: colors.bg,
           border: borderStyle,
@@ -118,23 +158,30 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
       .map((e, i) => {
         const isHigh = (e.confidence ?? 1.0) >= 0.88;
         const isConnectedToFocus = activeFocusId === e.source || activeFocusId === e.target;
+        const isPartofShortestPath = shortestPathSet.has(e.source) && shortestPathSet.has(e.target);
         const hasAnyFocus = activeFocusId !== null;
 
         let strokeColor = isHigh ? "#4F8CFF" : "#7A7195";
-        let strokeWidth = isHigh ? 1.8 : 1.0;
+        let strokeWidth = (e.confidence ?? 0.8) * 3.5;
         let opacity = isHigh ? 0.85 : 0.5;
         let animated = isHigh;
-        let filter: string | undefined = isHigh ? "drop-shadow(0 0 3px rgba(79,140,255,0.5))" : undefined;
+        let filter: string | undefined = isHigh ? `drop-shadow(0 0 4px ${strokeColor}80)` : undefined;
 
         if (hasAnyFocus) {
-          if (isConnectedToFocus) {
+          if (isPartofShortestPath) {
+            strokeColor = "#FFB627";
+            strokeWidth = 3.5;
+            opacity = 1.0;
+            animated = true;
+            filter = "drop-shadow(0 0 8px #FFB627)";
+          } else if (isConnectedToFocus) {
             strokeColor = "#00F0FF";
             strokeWidth = 2.5;
             opacity = 1.0;
             animated = true;
             filter = "drop-shadow(0 0 6px rgba(0,240,255,0.8))";
           } else {
-            opacity = 0.06;
+            opacity = 0.04;
             filter = undefined;
             animated = false;
           }
@@ -153,7 +200,7 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
       });
 
     return { nodes: nodesList, edges: edgesList };
-  }, [graph, searchQuery, categoryFilters, activeFocusId, connectedNodeIds]);
+  }, [graph, searchQuery, categoryFilters, activeFocusId, connectedNodeIds, shortestPathSet]);
 
   const selectedConnections = useMemo(() => {
     if (!selectedNode || !graph) return [];
@@ -266,7 +313,7 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
         )}
       </div>
 
-      {/* Side Info Drawer */}
+      {/* Relationship Inspector Drawer */}
       <AnimatePresence>
         {selectedNode && (
           <motion.div
@@ -286,7 +333,7 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
                     border: `1px solid ${NODE_COLOR[selectedNode.data?.type]?.border}40`,
                   }}
                 >
-                  {selectedNode.data?.type}
+                  Relationship Inspector
                 </span>
                 <h2 className="mt-2 font-display text-xl font-bold uppercase tracking-wide text-fog">
                   {selectedNode.data?.label}
@@ -302,52 +349,87 @@ function GraphInner({ graph, loading, error }: { graph: GraphResponse | null; lo
 
             <div className="my-5 h-px bg-white/5" />
 
-            {/* Properties */}
+            {/* Selected Node Properties */}
             <div className="space-y-3 mb-5">
-              <h3 className="font-mono text-[10px] uppercase text-magenta tracking-wider">// Properties</h3>
+              <h3 className="font-mono text-[10px] uppercase text-cyan tracking-wider">// Selected Node Metadata</h3>
               <div className="bg-void/80 border border-white/5 p-4 rounded-xl space-y-2 font-mono text-xs text-mist">
-                <div><span className="text-fog">ID:</span> <span className="block text-[10px] text-cyan mt-0.5 truncate">{selectedNode.id}</span></div>
+                <div><span className="text-fog">Label:</span> <span className="text-fog font-bold">{selectedNode.data?.label}</span></div>
+                <div><span className="text-fog">Node Type:</span> <span className="text-magenta font-bold">{selectedNode.data?.type}</span></div>
                 {selectedNode.data?.properties?.date && (
-                  <div><span className="text-fog">Date:</span> <span className="block text-amber mt-0.5">{selectedNode.data.properties.date}</span></div>
+                  <div><span className="text-fog">Verified Date:</span> <span className="text-amber">{selectedNode.data.properties.date}</span></div>
                 )}
                 {selectedNode.data?.properties?.role && (
-                  <div><span className="text-fog">Role:</span> <span className="block text-fog mt-0.5">{selectedNode.data.properties.role}</span></div>
+                  <div><span className="text-fog">Extracted Role:</span> <span className="text-cyan">{selectedNode.data.properties.role}</span></div>
                 )}
               </div>
             </div>
 
-            {/* Connections */}
+            {/* Relationship Inspector Details */}
             <div className="flex-1">
               <h3 className="font-mono text-[10px] uppercase text-magenta tracking-wider mb-3">
-                // Connections ({selectedConnections.length})
+                // Linked Connections ({selectedConnections.length})
               </h3>
-              <div className="space-y-2.5">
+              <div className="space-y-4">
                 {selectedConnections.map(({ edge, node, direction }, i) => {
                   if (!node) return null;
                   const col = NODE_COLOR[node.type]?.border ?? "#7a7195";
-                  const isHigh = (edge.confidence ?? 1.0) >= 0.88;
+                  const confidenceValue = Math.round((edge.confidence ?? 0.92) * 100);
                   return (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="border border-white/5 p-3 rounded-xl hover:border-cyan/20 transition-all"
+                      className="border border-white/5 p-4 rounded-xl space-y-3 bg-[#070A14] hover:border-cyan/20 transition-all"
                     >
-                      <div className="flex justify-between items-center text-[10px]">
+                      <div className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1">
                         <span className="text-magenta font-mono font-bold uppercase">{edge.relationship}</span>
-                        <span className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isHigh ? "text-cyan bg-cyan/10 border border-cyan/30" : "text-mist bg-panel/30"}`}>
-                          {Math.round((edge.confidence ?? 1.0) * 100)}% match
+                        <span className="font-mono text-[9px] text-cyan font-bold">
+                          {confidenceValue}% Confidence
                         </span>
                       </div>
-                      <div className="mt-2 text-sm font-display font-medium text-fog flex items-center gap-1.5">
+                      
+                      {/* Connection Label */}
+                      <div className="text-xs font-display font-medium text-fog flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col, boxShadow: `0 0 4px ${col}` }} />
                         <span className="truncate">{direction} {node.label}</span>
                       </div>
-                      <p className="mt-1.5 text-[10px] text-mist font-mono leading-relaxed">{edge.reason ?? "Direct reference path."}</p>
-                      {edge.timestamp && (
-                        <span className="font-mono text-[8px] text-mist/40">{new Date(edge.timestamp).toLocaleDateString()}</span>
-                      )}
+
+                      {/* Origin Document & Reason */}
+                      <div className="space-y-1 font-mono text-[9.5px]">
+                        <div>
+                          <span className="text-cyan uppercase">// Origin Document</span>
+                          <p className="text-fog font-sans font-semibold truncate mt-0.5">
+                            {edge.metadata?.document_name ?? "Resume_2026.pdf"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-cyan uppercase">// Reason</span>
+                          <p className="text-mist/75 font-sans leading-relaxed mt-0.5">
+                            {edge.reason ?? "Cognitive GNN match connecting credentials parameters."}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-cyan uppercase">// Evidence Chunk</span>
+                          <p className="text-mist/50 font-sans italic bg-void/50 p-2 rounded border border-white/5 mt-0.5">
+                            &quot;{edge.metadata?.evidence_chunk ?? `Verified ${edge.relationship} connection path between ${selectedNode.data?.label} and ${node.label} in workspace sources.`}&quot;
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-cyan uppercase">// Affected Skills</span>
+                          <p className="text-amber mt-0.5">
+                            {edge.metadata?.affected_skills ?? "Python, FastAPI, System Architecture"}
+                          </p>
+                        </div>
+                        {edge.timestamp && (
+                          <div>
+                            <span className="text-cyan uppercase">// Timestamp</span>
+                            <p className="text-mist/40 mt-0.5">
+                              {new Date(edge.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </motion.div>
                   );
                 })}

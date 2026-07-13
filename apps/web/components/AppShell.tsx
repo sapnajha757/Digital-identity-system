@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={`relative z-10 flex min-h-screen ${presentationMode ? "presentation-layout" : ""}`}>
-      {!hideSidebar && !presentationMode && <Sidebar onStartStoryMode={() => {
+      {!hideSidebar && <Sidebar onStartStoryMode={() => {
         setStoryModeActive(true);
         localStorage.setItem("dis_story_mode", "true");
       }} />}
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       )}
 
-      <main className={hideSidebar || presentationMode ? "flex-1" : "flex-1 md:pl-64"}>
+      <main className={hideSidebar ? "flex-1" : "flex-1 md:pl-64"}>
         {children}
       </main>
 
