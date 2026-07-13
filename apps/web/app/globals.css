@@ -40,7 +40,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* Moving Aurora lights configuration */
+/* Moving Aurora lights configuration — 3 orbs */
 .aurora-container {
   pointer-events: none;
   position: fixed;
@@ -74,6 +74,16 @@ body {
   animation: float-aurora-2 30s ease-in-out infinite alternate;
 }
 
+.aurora-3 {
+  top: 40%;
+  left: 50%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #FF2E9A 0%, transparent 80%);
+  animation: float-aurora-3 20s ease-in-out infinite alternate;
+  opacity: 0.6;
+}
+
 @keyframes float-aurora-1 {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(80px, 60px) scale(1.1); }
@@ -86,6 +96,12 @@ body {
   100% { transform: translate(60px, -80px) scale(1.15); }
 }
 
+@keyframes float-aurora-3 {
+  0% { transform: translate(-50%, -50%) scale(0.8); }
+  50% { transform: translate(-60%, -40%) scale(1.1); }
+  100% { transform: translate(-40%, -60%) scale(0.9); }
+}
+
 /* Linear & Stripe gradient texts */
 .gradient-text {
   background: linear-gradient(135deg, #FFF 20%, #4F8CFF 70%, #7B61FF 100%);
@@ -96,6 +112,13 @@ body {
 
 .gradient-accent {
   background: linear-gradient(90deg, #4F8CFF 0%, #7B61FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-text-magenta {
+  background: linear-gradient(135deg, #FF2E9A 0%, #7B61FF 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -131,6 +154,136 @@ body {
   }
 }
 
+/* === SKELETON / SHIMMER LOADING === */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-text-sm {
+  height: 9px;
+  border-radius: 3px;
+}
+
+.skeleton-circle {
+  border-radius: 9999px;
+}
+
+/* === SLIDE-UP ENTRANCE === */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* === TYPING CURSOR === */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typing-cursor::after {
+  content: '|';
+  display: inline-block;
+  margin-left: 1px;
+  animation: blink-cursor 1s step-end infinite;
+  color: #4F8CFF;
+}
+
+/* === ORBIT ANIMATIONS === */
+@keyframes orbit-spin {
+  from { transform: rotate(0deg) translateX(var(--orbit-r)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--orbit-r)) rotate(-360deg); }
+}
+
+@keyframes orbit-reverse {
+  from { transform: rotate(360deg) translateX(var(--orbit-r)) rotate(-360deg); }
+  to { transform: rotate(0deg) translateX(var(--orbit-r)) rotate(0deg); }
+}
+
+@keyframes orbit-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* === NOTIFICATION BADGE PULSE === */
+@keyframes badge-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 46, 154, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(255, 46, 154, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 46, 154, 0); }
+}
+
+.badge-pulse {
+  animation: badge-pulse 2s infinite;
+}
+
+/* === SCORE RING ANIMATION === */
+@keyframes ring-fill {
+  from { stroke-dashoffset: 314.15; }
+  to { stroke-dashoffset: var(--ring-offset); }
+}
+
+/* === WIDGET CARD HOVER === */
+.widget-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.widget-card:hover {
+  border-color: rgba(79, 140, 255, 0.3);
+  background: rgba(15, 23, 42, 0.7);
+  box-shadow: 0 0 20px rgba(79, 140, 255, 0.07), 0 4px 24px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* === PROGRESS BAR === */
+.progress-bar-fill {
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* === SCAN LINE EFFECT === */
+.bg-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.05) 2px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+}
+
+/* === GLOW EFFECTS === */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(79, 140, 255, 0.25), 0 0 40px rgba(79, 140, 255, 0.1);
+}
+.glow-magenta {
+  box-shadow: 0 0 20px rgba(255, 46, 154, 0.25), 0 0 40px rgba(255, 46, 154, 0.1);
+}
+.glow-amber {
+  box-shadow: 0 0 20px rgba(255, 182, 39, 0.25), 0 0 40px rgba(255, 182, 39, 0.1);
+}
+
 /* Custom premium scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
@@ -154,7 +307,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora-1, .aurora-2 {
+  .aurora-1, .aurora-2, .aurora-3 {
+    animation: none;
+  }
+  .skeleton {
     animation: none;
   }
 }
@@ -201,3 +357,58 @@ body {
   stroke: #ffffff !important;
 }
 
+/* === TIMELINE CINEMATIC === */
+@keyframes timeline-grow {
+  from { height: 0; }
+  to { height: 100%; }
+}
+
+.timeline-line {
+  animation: timeline-grow 1.5s ease-in-out forwards;
+}
+
+/* === CAREER UNIVERSE === */
+@keyframes universe-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.universe-node {
+  animation: universe-pulse 3s ease-in-out infinite;
+}
+
+/* === NOTIFICATION SLIDE-IN === */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* === COMMAND PALETTE === */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Success checkmark animation */
+@keyframes check-draw {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+.check-draw {
+  stroke-dasharray: 100;
+  animation: check-draw 0.5s ease forwards;
+}
+
+/* Sparkline micro-chart */
+.sparkline-bar {
+  transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}

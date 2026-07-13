@@ -4,48 +4,61 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { CopilotPanel } from "@/components/CopilotPanel";
+import { AIDiscoveryToastProvider } from "@/components/AIDiscoveryToast";
+import { DemoStoryMode } from "@/components/DemoStoryMode";
+import { AnimatePresence } from "framer-motion";
 
 const PATHS = ["/dashboard", "/timeline", "/graph", "/chat", "/portfolio", "/profile"];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const hideSidebar = pathname === "/" || pathname === "/login";
+  const hideSidebar = pathname === "/" || pathname === "/login" || pathname?.startsWith("/os/");
   const [showSearch, setShowSearch] = useState(false);
   const [showCopilot, setShowCopilot] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
+  const [storyModeActive, setStoryModeActive] = useState(false);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    // Sync presentation mode on load
     setPresentationMode(localStorage.getItem("dis_presentation_mode") === "true");
 
     const handlePresentationChange = () => {
       setPresentationMode(localStorage.getItem("dis_presentation_mode") === "true");
     };
+    const handleStoryMode = () => {
+      setStoryModeActive(localStorage.getItem("dis_story_mode") === "true");
+    };
     window.addEventListener("presentation-mode-changed", handlePresentationChange);
-    return () => window.removeEventListener("presentation-mode-changed", handlePresentationChange);
+    window.addEventListener("story-mode-changed", handleStoryMode);
+    return () => {
+      window.removeEventListener("presentation-mode-changed", handlePresentationChange);
+      window.removeEventListener("story-mode-changed", handleStoryMode);
+    };
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Toggle Command Palette
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setShowSearch((prev) => !prev);
       }
-      // Toggle Copilot Panel
       if ((e.metaKey || e.ctrlKey) && e.key === "i") {
         e.preventDefault();
         setShowCopilot((prev) => !prev);
       }
-      // Close overlay on Escape
       if (e.key === "Escape") {
         setShowSearch(false);
         setShowCopilot(false);
       }
-      // Tab navigation
-      if (!hideSidebar && !showSearch && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+      // Number key nav
+      if (
+        !hideSidebar &&
+        !showSearch &&
+        !storyModeActive &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
         if (e.key === "1") router.push(PATHS[0]);
         if (e.key === "2") router.push(PATHS[1]);
         if (e.key === "3") router.push(PATHS[2]);
@@ -56,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [router, hideSidebar, showSearch]);
+  }, [router, hideSidebar, showSearch, storyModeActive]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,15 +79,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     setQuery("");
   };
 
+  const exitStoryMode = () => {
+    setStoryModeActive(false);
+    localStorage.setItem("dis_story_mode", "false");
+    window.dispatchEvent(new Event("story-mode-changed"));
+  };
+
   return (
     <div className={`relative z-10 flex min-h-screen ${presentationMode ? "presentation-layout" : ""}`}>
-      {!hideSidebar && !presentationMode && <Sidebar />}
-      
-      {/* Floating Copilot quick-trigger button */}
-      {!hideSidebar && !presentationMode && (
+      {!hideSidebar && !presentationMode && <Sidebar onStartStoryMode={() => {
+        setStoryModeActive(true);
+        localStorage.setItem("dis_story_mode", "true");
+      }} />}
+
+      {/* Floating Copilot trigger */}
+      {!hideSidebar && !presentationMode && !storyModeActive && (
         <button
           onClick={() => setShowCopilot(true)}
-          className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full border border-cyan/45 bg-panel hover:bg-cyan/10 hover:border-cyan text-cyan flex items-center justify-center font-bold font-mono text-sm shadow-glow-cyan transition-all hover:scale-105"
+          className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full border border-cyan/45 bg-panel hover:bg-cyan/10 hover:border-cyan text-cyan flex items-center justify-center font-bold font-mono text-sm shadow-[0_0_16px_rgba(79,140,255,0.2)] transition-all hover:scale-105"
           title="Open AI Copilot (Ctrl+I)"
           aria-label="Open AI Copilot"
         >
@@ -82,13 +104,25 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       )}
 
-      <main className={hideSidebar || presentationMode ? "flex-1" : "flex-1 md:pl-64"}>{children}</main>
+      <main className={hideSidebar || presentationMode ? "flex-1" : "flex-1 md:pl-64"}>
+        {children}
+      </main>
 
       <CopilotPanel isOpen={showCopilot} onClose={() => setShowCopilot(false)} />
 
-      {/* Spotlight Command Palette Overlay */}
+      {/* Global AI discovery toasts */}
+      <AIDiscoveryToastProvider />
+
+      {/* Demo story mode overlay */}
+      <AnimatePresence>
+        {storyModeActive && (
+          <DemoStoryMode isActive={storyModeActive} onExit={exitStoryMode} />
+        )}
+      </AnimatePresence>
+
+      {/* Spotlight Command Palette */}
       {showSearch && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-[#07090F]/70 backdrop-blur-md flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
@@ -96,7 +130,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <div className="w-full max-w-xl glass-panel rounded-xl shadow-2xl p-6 relative border border-white/10">
             <div className="flex justify-between items-center border-b border-panel-raised/30 pb-3 mb-4">
-              <span className="font-mono text-[9px] text-cyan font-bold uppercase tracking-wider">// UNIVERSAL COMMAND PALETTE</span>
+              <span className="font-mono text-[9px] text-cyan font-bold uppercase tracking-wider">
+                // UNIVERSAL COMMAND PALETTE
+              </span>
               <button
                 onClick={() => setShowSearch(false)}
                 className="text-mist hover:text-magenta font-mono text-[10px] transition-colors"

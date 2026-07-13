@@ -1,196 +1,275 @@
-# IdentityOS 🚀
-
-An AI-powered Digital Identity Operating System that understands, validates, and connects a user's professional journey, turning folders of unorganized documents into a queryable, structured knowledge graph and recruiter-ready verified portfolio.
-
----
-
-## 📖 Project Vision & Problem Statement
-
-### The Problem
-Traditional portfolios, CVs, and document drives are static, fragmented, and unverified. Resumes are filled with self-proclaimed skills, certificates are buried in email folders, and project context is lost across deep directory paths. Recruiters spend hours verifying credentials, while individuals struggle to show the cohesive narrative of their career evolution.
-
-### The Solution: IdentityOS
-**IdentityOS** is a cognitive environment that ingests, parses (via OCR), categorizes, indexes, and links all facets of an academic and professional journey. 
-> "You'll never have to search through folders again. IdentityOS already understands your journey."
-
----
-
-## ⚡ Key Features
-
-1. **Intelligent Ingestion Pipeline**: Asynchronous OCR text extraction, chunking, and metadata parsing.
-2. **AI Categorization**: Automatically classifies documents into 7 core types (Resume, Certificate, Project, Academic, Identification, Recommendation, Experience).
-3. **Multi-dimensional Graph Mapping**: Discovers implicit connections (e.g. Skill $\to$ Project, Certificate $\to$ Internship) and projects them into a Neo4j Knowledge Graph.
-4. **Verified Dossier Portfolio**: An exportable (JSON/CSV) and print-optimized recruiter presentation layout with zero-control view security.
-5. **Grounded AI Copilot**: High-fidelity RAG-powered chatbot with direct document source citations and confidence scores.
-6. **Career Twin & Predictive Engine**: Infers overall role trends, maps career directions, and recommends target steps.
-7. **Identity Verification & Scoring**: Compiles a real-time credibility metric based on verified evidence count, cross-linking density, and document validity.
+<div align="center">
+  <h1>⚡ IdentityOS</h1>
+  <p><strong>The AI Digital Identity Operating System</strong></p>
+  <p>
+    <em>Transform your professional credentials into a living, AI-powered knowledge graph that recruiters, advisors, and hiring managers instantly understand.</em>
+  </p>
+  <br/>
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" />
+  <img src="https://img.shields.io/badge/Python-FastAPI-009688?style=for-the-badge&logo=fastapi" />
+  <img src="https://img.shields.io/badge/Neo4j-Graph_Engine-008CC1?style=for-the-badge&logo=neo4j" />
+  <img src="https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=for-the-badge&logo=openai" />
+  <img src="https://img.shields.io/badge/Qdrant-Vector_DB-EF5B25?style=for-the-badge" />
+</div>
 
 ---
 
-## 🛠️ Technology Stack
+## 🧠 The Problem
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS, ReactFlow, Framer Motion | HUD workspace interface, graph rendering, and presentation modes. |
-| **Backend** | FastAPI (Python 3.11+), SQLAlchemy | High-performance async REST API and background task worker. |
-| **Relational DB** | PostgreSQL | Source of truth for documents, extracted text chunks, and metadata. |
-| **Vector DB** | Qdrant | Dense vector search indexing (`bge-large-en-v1.5` embeddings) for semantic search. |
-| **Graph DB** | Neo4j | Graph-relational storage for discovered skills, credentials, and timeline edges. |
+Your professional identity is scattered across **dozens of PDFs, certificates, transcripts, and project docs** — and recruiters have **30 seconds** to evaluate you.
+
+Traditional resumes are static, unverifiable, and context-free. ATS systems strip out your nuance. LinkedIn is a popularity contest.
+
+**IdentityOS fixes all of this.**
 
 ---
 
-## 🧩 System Architecture
+## ✦ The Solution
+
+IdentityOS is an AI-native platform that:
+
+1. **Ingests any document** — resume, cert, transcript, project report, offer letter
+2. **Extracts entities** using OCR + GPT-4o (skills, dates, roles, organizations, achievements)
+3. **Builds a Living Knowledge Graph** connecting everything with confidence-scored relationships
+4. **Constructs a Career Twin** — a dynamic AI persona synthesized from verified data
+5. **Generates AI Insights** — career gaps, salary predictions, recruiter readiness score
+6. **Exports a shareable portfolio** — one link, fully recruiter-ready
+
+---
+
+## 🏗️ Architecture
 
 ```mermaid
-graph TD
-    A[User / Recruiter] -->|Interacts| B[Next.js Frontend]
-    B -->|API Requests| C[FastAPI Backend]
-    C -->|Store Metadata / Chunks| D[(PostgreSQL)]
-    C -->|Query Embeddings| E[(Qdrant Vector DB)]
-    C -->|Traverse Relations| F[(Neo4j Graph DB)]
-    
-    subgraph Ingestion Pipeline [Async Ingestion Pipeline]
-        G[Document Upload] -->|Extract Text| H[OCR Engine]
-        H -->|Classify & Tag| I[LLM Classifier]
-        I -->|Generate Vectors| J[Embedding Service]
-        I -->|Extract Relationships| K[Graph Linker]
-        J -->|Index| E
-        K -->|Create Nodes/Edges| F
+graph TB
+    subgraph Frontend ["Frontend — Next.js 14 (App Router)"]
+        A[📄 Document Upload] --> B[⚡ AI Magic Moment Pipeline]
+        B --> C[🕸️ Living Knowledge Graph]
+        B --> D[🖥️ Mission Control Dashboard]
+        B --> E[💼 Portfolio Generator]
     end
+
+    subgraph Backend ["Backend — FastAPI"]
+        F[📥 Ingestion API] --> G[🔍 OCR Engine — Tesseract + PyMuPDF]
+        G --> H[🧠 LLM Extractor — GPT-4o]
+        H --> I[🗺️ Entity Mapper]
+        I --> J[🕸️ Neo4j Graph Writer]
+        I --> K[📦 Qdrant Vector Indexer]
+    end
+
+    subgraph AI ["AI Intelligence Layer"]
+        L[🤖 RAG Copilot — LangChain]
+        M[📊 Career Twin Engine]
+        N[🔮 Insight Generator]
+        O[🎯 Recruiter Readiness Scorer]
+    end
+
+    A --> F
+    J --> C
+    K --> L
+    H --> M
+    M --> N
+    N --> O
 ```
 
 ---
 
-## 🗄️ Database Responsibilities
+## 🌟 Feature Map
 
-To avoid synchronization issues and text duplication, the responsibilities are strictly separated:
-- **PostgreSQL**: Stores structured metadata, user credentials, document statuses, raw text chunks, and parsed timeline events.
-- **Qdrant**: Stores high-dimensional text embeddings. Holds only a pointer reference (`document_chunk_id`) to Postgres to perform semantic search, ensuring zero text redundancy.
-- **Neo4j**: Manages entities (Nodes: `Skill`, `Project`, `Certificate`, etc.) and their relationships (Edges: `HAS_SKILL`, `VERIFIED_BY`). Nodes carry minimal IDs; detailed text is fetched on-demand from Postgres.
+| Feature | Description | Tech |
+|---|---|---|
+| **Boot Experience** | Cinematic OS boot sequence at `/os/boot` | Framer Motion, Canvas API |
+| **Mission Control** | Full command center with 6 live widgets | React, SVG Charts |
+| **AI Magic Moment** | 8-step document analysis pipeline overlay | Framer Motion |
+| **Knowledge Graph V4** | Live ReactFlow graph with 40+ nodes, 250 relationships | ReactFlow, Neo4j |
+| **Career Twin Engine** | Dynamic AI professional persona | GPT-4o, LangChain |
+| **Demo Story Mode** | 8-step guided presentation for recruiters | Custom controller |
+| **AI Discovery Toasts** | Real-time AI insight notifications | Event emitter + AnimatePresence |
+| **Skill Radar** | Animated SVG spider chart for top 6 skills | SVG, Framer Motion |
+| **Identity Ring** | Dual-arc SVG completeness gauge | SVG animations |
+| **Recruiter Gauge** | Half-circle readiness meter | SVG needle animation |
+| **Learning Velocity** | Area chart for skill acquisition rate | SVG path animation |
+| **AI Copilot** | Context-aware RAG-powered career assistant | LangChain, Qdrant |
+| **Explainability Center** | Full citation trail for every AI insight | Custom chain |
+| **Portfolio Export** | Shareable public profile page | Next.js SSG |
+| **Presentation Mode** | Clean recruiter-facing view, no dev UI | localStorage flags |
+| **Demo Dataset V2** | 30 docs, 40 nodes, 250 edges pre-seeded | Local mock layer |
 
 ---
 
-## 📁 Directory Structure
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+, Python 3.11+, Docker (optional)
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/your-org/identityos
+cd identityos
+
+# Frontend
+cd apps/web && npm install
+
+# Backend
+cd ../../backend && pip install -r requirements.txt
+```
+
+### 2. Environment Variables
+
+```bash
+# apps/web/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# backend/.env
+OPENAI_API_KEY=sk-...
+NEO4J_URI=bolt://localhost:7687
+NEO4J_PASSWORD=your_password
+QDRANT_URL=http://localhost:6333
+```
+
+### 3. Run Development Servers
+
+```bash
+# Terminal 1 — Frontend
+cd apps/web && npm run dev       # → http://localhost:3000
+
+# Terminal 2 — Backend
+cd backend && uvicorn main:app --reload  # → http://localhost:8000
+```
+
+### 4. Try Demo Mode
+
+Visit `http://localhost:3000` → click **"Explore Demo Dataset"** to instantly load 30 documents, 250 relationships, and a full Career Twin with zero backend required.
+
+Or navigate directly to **`/os/boot`** for the cinematic boot experience.
+
+---
+
+## 🎬 Demo Flow (For Judges)
+
+> Use this sequence for a 4-minute live demo:
+
+| Step | Action | Shows |
+|---|---|---|
+| 1 | Open `/os/boot` | Cinematic OS boot, neural mesh background |
+| 2 | Auto-redirect → `/dashboard` | Mission Control: Identity Ring 94%, Career Twin, Recruiter Gauge 96% |
+| 3 | Click **"Start Presentation"** in sidebar | Demo Story Mode activates with 8-step guide |
+| 4 | Upload any PDF | AI Magic Moment: 8-step analysis pipeline + AI Copilot speech bubbles |
+| 5 | Navigate to `/graph` | Living Knowledge Graph: 40 nodes, hover to see confidence + reasoning |
+| 6 | Navigate to `/timeline` | 12-event chronological career journey |
+| 7 | Navigate to `/explainability` | Every AI insight grounded in real document citations |
+| 8 | Navigate to `/portfolio` | One shareable recruiter-ready link |
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Animations | Framer Motion 11 |
+| Graph Viz | ReactFlow 11 |
+| Styling | Tailwind CSS v3 |
+| Charts | Custom SVG (zero dependencies) |
+| State | React useState + localStorage |
+| Fonts | Space Grotesk · Inter · JetBrains Mono |
+
+### Backend
+| Layer | Technology |
+|---|---|
+| API | FastAPI + Uvicorn |
+| OCR | Tesseract + PyMuPDF |
+| AI Extraction | OpenAI GPT-4o |
+| Graph DB | Neo4j 5 |
+| Vector DB | Qdrant |
+| AI Pipeline | LangChain |
+| Auth | Supabase |
+
+---
+
+## 📐 Design System
+
+IdentityOS uses a custom dark-mode design system:
 
 ```
-digital-identity-system/
+void:         #07090F   — Background
+panel:        #11151C   — Surface
+panel-raised: #191F2A   — Elevated surface
+cyan:         #4F8CFF   — Primary action
+magenta:      #7B61FF   — Secondary / AI
+amber:        #F59E0B   — Warning / Prediction
+fog:          #F8FAFC   — Primary text
+mist:         #94A3B8   — Secondary text
+```
+
+Visual references: Apple VisionOS · Linear · Vercel · Arc Browser · Figma
+
+---
+
+## 📁 Project Structure
+
+```
+identityos/
 ├── apps/
-│   ├── api/                   # Python FastAPI Backend
-│   │   ├── core/              # Config, Security, and App Constants
-│   │   ├── db/                # Postgres, Qdrant, and Neo4j Connections
-│   │   ├── models/            # SQLAlchemy database models
-│   │   ├── routers/           # REST endpoint controllers (auth, chat, dashboard, etc.)
-│   │   ├── services/          # OCR, LLM, Embedding, Graph, RAG, and Timeline services
-│   │   ├── uploads/           # Temporary local storage for uploads
-│   │   ├── workers/           # Asynchronous ingestion tasks
-│   │   └── main.py            # API entrypoint
-│   └── web/                   # Next.js Frontend
-│       ├── app/               # Next.js App Router views (dashboard, graph, chat, etc.)
-│       ├── components/        # Reusable UI widgets (AppShell, HudFrame, Sidebar, etc.)
-│       ├── lib/               # API clients, axios configurations
-│       └── package.json
-├── docker-compose.yml         # Local database orchestration configurations
-└── README.md
+│   └── web/                    # Next.js 14 frontend
+│       ├── app/
+│       │   ├── os/boot/        # ⚡ Cinematic boot sequence
+│       │   ├── dashboard/      # 🖥️ Mission Control V2
+│       │   ├── graph/          # 🕸️ Knowledge Graph V4
+│       │   ├── timeline/       # ⏳ Career Timeline
+│       │   ├── chat/           # 💬 AI Copilot
+│       │   ├── portfolio/      # 💼 Public portfolio
+│       │   ├── auditors/       # 🔍 AI Auditors
+│       │   ├── evolution/      # 📈 Career Twin
+│       │   └── explainability/ # 🧠 AI Explainability
+│       ├── components/
+│       │   ├── AILoader.tsx         # Neural mesh AI loading state
+│       │   ├── AIDiscoveryToast.tsx # Floating AI insight toasts
+│       │   ├── DemoStoryMode.tsx    # 8-step guided presentation
+│       │   ├── UploadControl.tsx    # AI Magic Moment pipeline
+│       │   ├── charts/
+│       │   │   ├── IdentityRing.tsx
+│       │   │   ├── SkillRadar.tsx
+│       │   │   ├── GrowthTimeline.tsx
+│       │   │   └── RecruiterGauge.tsx
+│       │   ├── Sidebar.tsx
+│       │   ├── AppShell.tsx
+│       │   └── CopilotPanel.tsx
+│       └── lib/
+│           ├── api-client.ts       # API + Demo Dataset V2 (30 docs, 250 rels)
+│           └── discovery-store.ts  # Global AI toast event emitter
+└── backend/                    # FastAPI backend
+    ├── main.py
+    ├── routers/
+    └── services/
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🗺️ Roadmap
 
-### 1. Prerequisite Infrastructure
-Bring up the relational database, vector database, and graph database using Docker:
-```bash
-docker compose up -d
-```
-*Port mappings:*
-- PostgreSQL: `localhost:5432`
-- Qdrant: `localhost:6333`
-- Neo4j: `localhost:7474` (web browser UI) / `localhost:7687` (bolt connection)
-
-### 2. Backend Setup
-```bash
-cd apps/api
-python -m venv venv
-# Linux/macOS
-source venv/bin/activate
-# Windows
-.\venv\Scripts\activate
-
-pip install -r requirements.txt
-cp .env.example .env # Update with LLM provider keys and configuration overrides
-uvicorn main:app --reload --port 8000
-```
-Verify backend is online: `curl http://localhost:8000/health` $\to$ `{"status": "ok"}`
-
-### 3. Frontend Setup
-```bash
-cd apps/web
-npm install
-cp .env.local.example .env.local
-npm run dev
-```
-Open `http://localhost:3000` in your web browser.
+- [x] Phase 1–11: Core platform, AI pipelines, graph engine, copilot
+- [x] **Phase 12**: Grand Finale — Boot experience, Magic Moment, Dashboard V2, Graph V4, Story Mode
+- [ ] Phase 13: Mobile app (React Native) with document camera
+- [ ] Phase 14: Multi-user teams — shared credential vaults
+- [ ] Phase 15: Enterprise API — HR system integrations
+- [ ] Phase 16: Blockchain credential anchoring (ERC-721 NFT certs)
 
 ---
 
-## 🔑 Demo & Verification Credentials
+## 🏆 Built For
 
-IdentityOS has a built-in **Demo Mode Preset** toggle in the sidebar. This allows you to run and showcase the entire document processing cycle immediately.
+**National AI Hackathon 2026** — Category: AI for Human Empowerment
 
-- **Username**: `demo@identityos.local`
-- **Password**: `demo1234`
-*(If using custom database configurations, sign up/login will auto-provision a fresh demo environment).*
+> *"When judges finish the demo, they should feel like they have seen the future of digital identity management."*
 
 ---
 
-## 📡 Core API Endpoints
-
-- `POST /auth/login` - Local authentication & session creation.
-- `POST /documents/upload` - Ingests document file, triggers async OCR extraction.
-- `GET /documents` - List uploaded files and current processing statuses.
-- `POST /search` - Semantic search across vectorized document chunks.
-- `POST /chat` - Grounded RAG conversational AI.
-- `GET /graph` - Returns Neo4j nodes and edges for ReactFlow visualization.
-- `GET /timeline` - Returns chronologically ordered milestone objects.
-- `GET /dashboard/metrics` - Fetch career trends, profile summary, and credibility scores.
-
----
-
-## 🔮 Future Roadmap
-
-- **Federated Verification**: Cryptographic signing of credential verification paths.
-- **Cross-User Graph Linkages**: Network mappings across teams and companies to discover optimal project pairings.
-- **Multimodal Extraction**: Direct parsing of video credentials and project walkthrough clips.
-
----
-
-## 📖 Hackathon Story
-
-IdentityOS was conceived in a 48-hour sprint to solve the "lost folders" problem of academic and career credential management. We wanted to move beyond raw storage systems and build a cognitive, AI-native workspace. By orchestrating Postgres (facts), Qdrant (vectors), and Neo4j (graph relations), we proved that an AI agent could dynamically parse unstructured CVs/certificates, verify credentials completeness, and map out career trends in real-time.
-
----
-
-## 🎭 Final Demo Script (5-Minute Walkthrough)
-
-### 1. Landing Page (0:00 - 0:45)
-- **Visuals**: Futuristic developer HUD theme with Aurora flow orbs.
-- **Narrative**: Explain the core thesis: "You'll never have to search through folders again. IdentityOS already understands your journey." Highlight the key stack (Next.js, FastAPI, Postgres, Qdrant, Neo4j).
-
-### 2. Login & Demo Mode Preset (0:45 - 1:15)
-- **Actions**: Click **⚡ Explore Demo Preset** on the landing page or login view to instantly bypass signup.
-- **Visuals**: Instantly loads pre-populated portfolio projects, AWS certifications, and internship records.
-
-### 3. Ingestion & AI Processing (1:15 - 2:00)
-- **Actions**: Upload a mock CV or certification.
-- **Visuals**: Watch the HUD compilation overlay cycle: "Analyzing Relationships...", "Knowledge Graph Synchronized", "Career Twin Updated", "Timeline Refreshed".
-
-### 4. Interactive Dashboard (2:00 - 2:45)
-- **Visuals**: AI Narrative Synoptic Box, capability score dial, emerging technical trend vectors, and document quality indicators.
-- **Narrative**: Discuss how the Daily AI Briefing updates dynamically based on the uploaded certificates.
-
-### 5. Living Knowledge Graph & Timeline (2:45 - 3:45)
-- **Visuals**: Hover over nodes to see connected paths glow; select nodes to view matching metrics and reasoning details. Scroll the timeline to see chronologically ordered career achievements.
-
-### 6. Recruiter Presentation Mode & Export (3:45 - 5:00)
-- **Actions**: Toggle presentation mode in the sidebar, open the printable view, export a JSON/CSV dossier of credentials.
-- **Statement**: Conclude with: *"IdentityOS doesn't simply organize files. It understands, connects, explains, predicts, and evolves your entire digital journey."*
+<div align="center">
+  <p>Built with ❤️ and <strong>too much coffee</strong></p>
+  <p><strong>IdentityOS</strong> — Your identity, understood by machines, trusted by humans.</p>
+</div>
