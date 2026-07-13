@@ -26,8 +26,8 @@ ALLOWED_TYPES = {
 }
 
 
-async def _get_or_create_user(db: AsyncSession, user: CurrentUser) -> User:
-    result = await db.execute(select(User).where(User.auth_id == user.auth_id))
+async def get_or_create_user(db: AsyncSession, user: CurrentUser) -> User:
+    result = await db.execute(select(User).where(User.auth_id == uuid.UUID(user.auth_id)))
     db_user = result.scalar_one_or_none()
     if db_user is None:
         db_user = User(auth_id=uuid.UUID(user.auth_id), email=user.email or f"{user.auth_id}@unknown.local")
@@ -47,7 +47,7 @@ async def upload_document(
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 
-    db_user = await _get_or_create_user(db, user)
+    db_user = await get_or_create_user(db, user)
 
     file_bytes = await file.read()
     if not file_bytes:
@@ -93,7 +93,7 @@ async def list_documents(
     db: AsyncSession = Depends(get_db),
     user: CurrentUser = Depends(current_user),
 ):
-    db_user = await _get_or_create_user(db, user)
+    db_user = await get_or_create_user(db, user)
     result = await db.execute(
         select(Document).where(Document.user_id == db_user.id).order_by(Document.uploaded_at.desc())
     )

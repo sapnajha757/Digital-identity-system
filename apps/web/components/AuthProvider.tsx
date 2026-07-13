@@ -50,8 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace("/login");
   }
 
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+
   // Avoid flashing protected content before the redirect check above runs.
-  if (loading) {
+  if (loading || (!session && !isPublicRoute)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="font-mono text-xs text-mist">// initializing session…</p>
