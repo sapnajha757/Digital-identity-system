@@ -7,11 +7,11 @@ import { Sidebar } from "@/components/Sidebar";
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const hideSidebar = pathname === "/login";
+  const hideSidebar = pathname === "/" || pathname === "/login";
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState("");
 
-  const paths = ["/", "/timeline", "/graph", "/chat", "/portfolio"];
+  const paths = ["/dashboard", "/timeline", "/graph", "/chat", "/portfolio"];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

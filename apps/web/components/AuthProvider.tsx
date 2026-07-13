@@ -12,7 +12,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/", "/login"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,9 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
     if (!session && !isPublicRoute) {
       router.replace("/login");
-    }
-    if (session && isPublicRoute) {
-      router.replace("/");
     }
   }, [session, loading, pathname, router]);
 

@@ -1,540 +1,708 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { apiClient, DocumentOut, InsightItem, DashboardMetricsResponse } from "@/lib/api-client";
-import { DocumentCard } from "@/components/DocumentCard";
-import { UploadControl } from "@/components/UploadControl";
-import { HudFrame } from "@/components/HudFrame";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { supabase } from "@/lib/api-client";
 
-function StreamingNarrative({ text }: { text: string }) {
-  const [displayedText, setDisplayedText] = useState("");
+// MOCKED PIPELINE STEPS
+const PIPELINE_STEPS = [
+  { id: "upload", label: "Upload SCATTERED.PDF", icon: "📤", desc: "PDFs, Resumes, Credentials, links" },
+  { id: "ocr", label: "OCR & Raw Extraction", icon: "🔍", desc: "Tesseract & Vision Layout analysis" },
+  { id: "llm", label: "LLM Parsing", icon: "🧠", desc: "Entity & relation categorization" },
+  { id: "embeddings", label: "Vector Embeddings", icon: "🧬", desc: "Multi-dimensional profile representation" },
+  { id: "qdrant", label: "Qdrant Indexing", icon: "📦", desc: "High speed vector retrieval backend" },
+  { id: "neo4j", label: "Neo4j Sync", icon: "🕸️", desc: "Structured knowledge relationship storage" },
+  { id: "graph", label: "Knowledge Graph Engine", icon: "📊", desc: "Bidirectional career path mapping" },
+  { id: "twin", label: "AI Career Twin", icon: "👥", desc: "Synthesis of academic/professional narrative" },
+  { id: "score", label: "Identity Index Score", icon: "📈", desc: "Completeness & reliability estimation" },
+  { id: "dashboard", label: "Cognitive Workspace", icon: "🖥️", desc: "Interactive intelligence dashboard" }
+];
 
-  useEffect(() => {
-    setDisplayedText("");
-    if (!text) return;
-    let idx = 0;
-    const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(idx));
-      idx++;
-      if (idx >= text.length) {
-        clearInterval(interval);
-      }
-    }, 10);
-    return () => clearInterval(interval);
-  }, [text]);
+// MOCKED STACKS
+const TECH_STACK = [
+  { name: "Next.js", desc: "React Framework for fast, responsive web applications.", category: "Frontend" },
+  { name: "React", desc: "UI Library powering dynamic reactive component architectures.", category: "Frontend" },
+  { name: "TypeScript", desc: "Static type checking for robust enterprise application design.", category: "Languages" },
+  { name: "Tailwind CSS", desc: "Utility-first CSS styling framework enabling custom glassmorphism.", category: "Styling" },
+  { name: "Framer Motion", desc: "Advanced layout and scroll-driven micro-interaction physics.", category: "Styling" },
+  { name: "FastAPI", desc: "Asynchronous Python backend api exposing pipeline models.", category: "Backend" },
+  { name: "PostgreSQL", desc: "Relational database persisting documents, profiles & metadata.", category: "Database" },
+  { name: "Neo4j", desc: "Native graph database storing professional credentials nodes.", category: "Database" },
+  { name: "Qdrant", desc: "Vector database storage running semantic query matching.", category: "Database" },
+  { name: "Docker", desc: "Containerized deployment of local AI models & storage backends.", category: "Infrastructure" },
+  { name: "OCR Core", desc: "Document pre-processing engine pulling raw textual symbols.", category: "AI Engine" },
+  { name: "Embeddings", desc: "OpenAI/HuggingFace token encoding for semantic context.", category: "AI Engine" },
+  { name: "Semantic Search", desc: "Dense vector index parsing for intent based query answering.", category: "AI Engine" },
+  { name: "RAG Engine", desc: "Retrieval-Augmented Generation referencing actual sources.", category: "AI Engine" }
+];
 
-  return (
-    <div className="relative font-mono text-fog text-xs md:text-sm leading-relaxed tracking-wide min-h-[60px]">
-      <span className="text-cyan font-bold block mb-2">// COGNITIVE STATEMENT:</span>
-      <span>{displayedText}</span>
-      {displayedText.length < text.length && (
-        <span className="inline-block w-1.5 h-4 ml-1 bg-cyan align-middle animate-pulse" />
-      )}
-    </div>
-  );
-}
+// ARCHITECTURE
+const ARCH_LAYERS = [
+  { id: "client", name: "Client Tier (Next.js)", parent: null, desc: "Renders interactive Knowledge Graph, Timeline & AI chat interface with 60 FPS motion animations." },
+  { id: "api", name: "Gateway (FastAPI)", parent: "client", desc: "Handles authentication, file uploading orchestrations & route caching parameters." },
+  { id: "ocr", name: "Vision/OCR Worker", parent: "api", desc: "Processes images and PDFs to extract structured raw text and tabular sections." },
+  { id: "llm", name: "LLM Parser (RAG)", parent: "ocr", desc: "Understands academic degrees, skills, roles & creates semantic relation linkages." },
+  { id: "postgres", name: "Relational Storage (Postgres)", parent: "llm", desc: "Safeguards structural document schemas, user states, and authentication credentials." },
+  { id: "neo4j", name: "Knowledge Repository (Neo4j)", parent: "llm", desc: "Constructs queryable entities (Certificates, Skills, Projects) as linked nodes." },
+  { id: "qdrant", name: "Vector Search Index (Qdrant)", parent: "llm", desc: "Stores context chunk embeddings to power natural language semantic searches." }
+];
 
-export default function HomePage() {
-  const [documents, setDocuments] = useState<DocumentOut[]>([]);
-  const [insights, setInsights] = useState<InsightItem[]>([]);
-  const [metrics, setMetrics] = useState<DashboardMetricsResponse | null>(null);
+// FEATURES
+const LANDING_FEATURES = [
+  { title: "AI Document Understanding", tags: ["OCR", "Resume Parser", "PDF Extraction"], icon: "📄", desc: "Upload chaotic resumes, certificates, and transcripts. Our parser maps layouts, extracts tabular data, and parses credentials automatically." },
+  { title: "Intelligent Categorization", tags: ["Projects", "Skills", "Achievements", "Internships"], icon: "🗂️", desc: "Categorize experience metadata. Translates scattered sentences into verified taxonomy classifications." },
+  { title: "Interactive Knowledge Graph", tags: ["Neo4j Visuals", "Dynamic Topology"], icon: "🕸️", desc: "See your career as a living web. Click through projects connected to skills, mapped to certifications, pointing to potential roles." },
+  { title: "Semantic Search Engine", tags: ["Qdrant Search", "Vector Queries"], icon: "🔎", desc: "Query your background in plain English. Retrieve 'AWS certificates', 'Python projects', or 'Internship milestones' instantly." },
+  { title: "AI Career Twin Profile", tags: ["Professional Narrative", "Confidence Scores"], icon: "👥", desc: "Generate a custom bio, analysis summary, gaps diagnostics, and interactive predictions dynamically computed from credentials." },
+  { title: "Cognitive Identity Score", tags: ["Completeness Gauge", "Verification Level"], icon: "📈", desc: "Understand your profile status with our animated compliance meter scoring structure, credentials quality, and skills depth." },
+  { title: "Interactive Digital Timeline", tags: ["Chronological Journey", "Milestones Tracker"], icon: "⏳", desc: "View experiences laid out linearly. Toggle filters, highlight inferred dates, and trace growth velocities." },
+  { title: "Grounded AI RAG Assistant", tags: ["Citations Matching", "No Hallucinations"], icon: "💬", desc: "Ask the OS questions about your work. Answers are generated with actual file source reference citations." },
+  { title: "Recruiter Portfolio Exporter", tags: ["Verified Portfolios", "Printable Dossiers"], icon: "💼", desc: "Turn raw credentials into a public shareable portfolio URL. Keep records clean, categorized, and beautiful." },
+  { title: "Cross Document Intelligence", tags: ["Implicit Relationships", "Goal Mapping"], icon: "🧠", desc: "Discovers hidden relationships, linking a certificate from last year to a project built yesterday." }
+];
+
+// INSIGHTS
+const INSIGHTS_ITEMS = [
+  "Knowledge Graph discovered 8 new credentials relationships.",
+  "Profile completeness increased to 94% with Google Intern document.",
+  "AI Career Twin: Capable of lead architect positions in ML infrastructures.",
+  "System recommendation: Kubernetes certification will unlock high-tier job matches.",
+  "Telemetry verified: All resume skills backed by PDF certificate sources."
+];
+
+export default function LandingPage() {
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [insightsLoading, setInsightsLoading] = useState(true);
-  const [demoMode, setDemoMode] = useState(false);
 
-  // Completion sequence states
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingStep, setProcessingStep] = useState(0);
+  // Demo Wizard State
+  const [demoActive, setDemoActive] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
+  const [demoFiles, setDemoFiles] = useState<string[]>([]);
+  const [demoLog, setDemoLog] = useState<string[]>([]);
+  const [demoGraph, setDemoGraph] = useState<any>({ nodes: [], edges: [] });
+  const [demoScore, setDemoScore] = useState(0);
+  const [demoTwin, setDemoTwin] = useState<string>("");
 
-  // Counter animation state for Gauge
-  const [animatedScore, setAnimatedScore] = useState(0);
+  // UI Interactive Elements
+  const [activeArch, setActiveArch] = useState<string | null>(null);
+  const [activeStackTab, setActiveStackTab] = useState<string>("All");
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState<number | null>(null);
+  const [insightIndex, setInsightIndex] = useState(0);
+  const [beforeTab, setBeforeTab] = useState<"before" | "after">("before");
 
-  const loadDocs = useCallback(() => {
-    setLoading(true);
-    apiClient
-      .listDocuments()
-      .then(setDocuments)
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+  // Parallax mouse position
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const loadInsights = useCallback(() => {
-    setInsightsLoading(true);
-    apiClient
-      .getInsights()
-      .then((res) => setInsights(res.insights))
-      .catch((err) => console.error("Could not load insights:", err))
-      .finally(() => setInsightsLoading(false));
-  }, []);
-
-  const loadMetrics = useCallback(() => {
-    apiClient
-      .getDashboardMetrics()
-      .then((res) => {
-        setMetrics(res);
-        let count = 0;
-        const target = res.identity_score ?? 10;
-        const interval = setInterval(() => {
-          if (count >= target) {
-            setAnimatedScore(target);
-            clearInterval(interval);
-          } else {
-            count += 1;
-            setAnimatedScore(count);
-          }
-        }, 12);
-      })
-      .catch((err) => console.error("Could not load metrics:", err));
-  }, []);
+  // Scroll animations
+  const { scrollYProgress } = useScroll();
+  const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const scaleHero = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
 
   useEffect(() => {
-    setDemoMode(localStorage.getItem("dis_demo_mode") === "true");
-    loadDocs();
-    loadInsights();
-    loadMetrics();
-  }, [loadDocs, loadInsights, loadMetrics]);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
 
-  const triggerCompletionSequence = () => {
-    setIsProcessing(true);
-    setProcessingStep(0);
-    const steps = [
-      "Analyzing Relationships...",
-      "Knowledge Graph Synchronized",
-      "Career Twin Updated",
-      "Timeline Refreshed",
-      "Confidence Score Improved",
-      "Verification Complete"
-    ];
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
 
-    let current = 0;
-    const interval = setInterval(() => {
-      current++;
-      if (current >= steps.length) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setIsProcessing(false);
-          loadDocs();
-          loadInsights();
-          loadMetrics();
-        }, 800);
-      } else {
-        setProcessingStep(current);
-      }
-    }, 600);
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  // Insight Carousel interval
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setInsightIndex((prev) => (prev + 1) % INSIGHTS_ITEMS.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Track mouse coordinates for parallax glow
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
   };
 
-  const handleUploadComplete = () => {
-    triggerCompletionSequence();
+  // Run guided interactive demo
+  const triggerDemo = () => {
+    if (demoActive) return;
+    setDemoActive(true);
+    setDemoStep(1);
+    setDemoFiles([]);
+    setDemoLog(["System ready. Initiating demonstration sequence..."]);
+    setDemoGraph({ nodes: [], edges: [] });
+    setDemoScore(35);
+    setDemoTwin("");
+
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const run = async () => {
+      // Step 1: Upload
+      await sleep(1500);
+      setDemoFiles(["Resume_Sapna_Jha.pdf"]);
+      setDemoLog((prev) => [...prev, "📥 Uploaded: Resume_Sapna_Jha.pdf", "⚙️ Initializing file ingest workers..."]);
+      setDemoStep(2);
+
+      // Step 2: OCR Parsing
+      await sleep(2000);
+      setDemoLog((prev) => [...prev, "🔍 Running Vision-OCR analysis...", "✓ OCR parsed 3,240 textual symbols.", "✓ Structuring raw text frames."]);
+      setDemoStep(3);
+
+      // Step 3: LLM Entities Mapping
+      await sleep(2200);
+      setDemoLog((prev) => [...prev, "🧠 Querying LLM Extraction pipelines...", "💡 Identified: 18 Skills (Python, FastAPI, AWS...)", "💡 Identified: Google Internship (SWE Intern)", "💡 Identified: AWS Cloud Practitioner Cert"]);
+      setDemoGraph({
+        nodes: [
+          { id: "1", label: "Sapna Jha", type: "user" },
+          { id: "2", label: "Google", type: "org" },
+          { id: "3", label: "AWS Cert", type: "cert" }
+        ],
+        edges: [
+          { source: "1", target: "2", type: "INTERNED_AT" },
+          { source: "1", target: "3", type: "CERTIFIED" }
+        ]
+      });
+      setDemoStep(4);
+
+      // Step 4: Knowledge Graph Growth
+      await sleep(2200);
+      setDemoLog((prev) => [...prev, "🕸️ Syncing relationships to Neo4j graph schemas...", "✓ Created 12 relationships", "✓ Linked PyTorch skill to Google Internship model", "✓ Built bidirectional project paths"]);
+      setDemoGraph((prev: any) => ({
+        nodes: [...prev.nodes, { id: "4", label: "PyTorch", type: "skill" }, { id: "5", label: "FastAPI", type: "skill" }],
+        edges: [...prev.edges, { source: "2", target: "4", type: "USED" }, { source: "1", target: "5", type: "EXPERT_IN" }]
+      }));
+      setDemoStep(5);
+
+      // Step 5: Scoring update
+      await sleep(1800);
+      setDemoLog((prev) => [...prev, "📈 Running metrics scoring validation...", "✓ Profile completeness calculated at 94%", "✓ Credentials verification trust: 90%"]);
+      setDemoScore(94);
+      setDemoStep(6);
+
+      // Step 6: Narrative / Career Twin
+      await sleep(2000);
+      setDemoLog((prev) => [...prev, "👥 Synthesizing Career Twin Persona...", "✓ Generated role analysis", "✓ Computed recommended next skills: Kubernetes"]);
+      setDemoTwin("Sapna Jha is a qualified ML and Graph systems specialist with proven competencies in Neo4j, Qdrant, and Python. Capable of building high-performance systems.");
+      setDemoStep(7);
+
+      // Complete
+      await sleep(2000);
+      setDemoLog((prev) => [...prev, "✨ Operating System updated successfully.", "✓ Recruiter Portfolio ready for deployment."]);
+      setDemoStep(8);
+    };
+
+    run();
   };
-
-  const score = metrics?.identity_score ?? 10;
-
-  // Stagger animation container
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-  };
-
-  const isBlank = !loading && documents.length === 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8 md:px-10 bg-void text-fog min-h-screen space-y-8 relative overflow-hidden">
-      
-      {/* PROCESSING COMPLETION MODAL OVERLAY */}
-      <AnimatePresence>
-        {isProcessing && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-void/90 backdrop-blur-md"
-          >
-            <HudFrame accent="cyan" className="bg-panel/85 p-8 max-w-md w-full border border-cyan/45 shadow-glow-cyan/20">
-              <div className="text-center mb-6">
-                <span className="font-mono text-[9px] text-magenta tracking-widest uppercase font-bold select-none">// COMPILING COGNITIVE PROFILE</span>
-                <h3 className="text-lg font-display font-black text-fog uppercase mt-1">Identity Construction</h3>
-              </div>
-              <div className="space-y-3 font-mono text-xs text-mist">
-                {[
-                  "Analyzing Relationships...",
-                  "Knowledge Graph Synchronized",
-                  "Career Twin Updated",
-                  "Timeline Refreshed",
-                  "Confidence Score Improved",
-                  "Verification Complete"
-                ].map((step, idx) => {
-                  const done = processingStep > idx;
-                  const active = processingStep === idx;
-                  return (
-                    <div key={idx} className="flex items-center justify-between border-b border-panel-raised/40 pb-2">
-                      <span className={active ? "text-cyan font-bold" : done ? "text-fog" : "text-mist/40"}>
-                        {active ? "> " : ""}{step}
-                      </span>
-                      <span>
-                        {done ? (
-                          <span className="text-cyan font-bold">✓</span>
-                        ) : active ? (
-                          <span className="inline-block w-2.5 h-2.5 bg-magenta animate-ping rounded-full shrink-0" />
-                        ) : (
-                          <span className="text-mist/20">[WAITING]</span>
-                        )}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </HudFrame>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="relative w-full min-h-screen bg-void text-fog font-body overflow-x-hidden selection:bg-cyan/35 select-text"
+      style={{
+        "--mx": `${mousePos.x}px`,
+        "--my": `${mousePos.y}px`
+      } as any}
+    >
+      {/* Living background aurora/glow */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[20%] left-[10%] w-[45vw] h-[45vw] bg-cyan/5 rounded-full filter blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[30%] right-[5%] w-[50vw] h-[50vw] bg-magenta/5 rounded-full filter blur-[120px] animate-pulse" style={{ animationDuration: "12s" }} />
+        {/* Subtle grid layer */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:40px_40px] opacity-60" />
+      </div>
 
-      {/* Hero Section */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative border border-panel-raised bg-panel/35 p-6 md:p-8 rounded-lg shadow-sm overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-scanlines pointer-events-none opacity-5" />
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <span className="font-mono text-[9px] text-magenta tracking-widest uppercase font-bold select-none">// IDENTITY ENGINE READY STATE</span>
-            <h1 className="mt-1 font-display text-2xl md:text-3xl font-black uppercase tracking-tight text-fog">
-              Professional Twin Engine
-            </h1>
-            <p className="mt-1.5 text-xs text-mist font-mono">
-              Engine status: <span className="text-cyan font-bold">Active Telemetry</span> | Demo Portfolio: <span className="text-cyan font-bold">{demoMode ? "Preloaded" : "Inactive"}</span> | Sync Index: <span className="text-cyan font-bold">{score}%</span>
-            </p>
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-40 w-full bg-void/50 backdrop-blur-md border-b border-panel-raised/50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan shadow-glow-cyan animate-pulse" />
+            <Link href="/" className="font-display text-lg font-black tracking-widest text-fog select-none">
+              IDENTITY<span className="text-cyan">OS</span>
+            </Link>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link 
-              href="/portfolio"
-              className="px-4 py-2 border border-magenta/40 hover:border-magenta bg-magenta/5 hover:bg-magenta/15 text-magenta font-mono text-[10px] uppercase tracking-wider rounded transition-all duration-200"
-            >
-              [SHARE PROFILE]
-            </Link>
-            <Link 
-              href="/chat"
-              className="px-4 py-2 border border-cyan/40 hover:border-cyan bg-cyan/5 hover:bg-cyan/15 text-cyan font-mono text-[10px] uppercase tracking-wider rounded transition-all duration-200"
-            >
-              [ASK AI COGNITION]
-            </Link>
+
+          {/* Nav links */}
+          <nav className="hidden md:flex items-center gap-6 font-mono text-[10px] tracking-widest text-mist">
+            <a href="#features" className="hover:text-cyan transition-colors">FEATURES</a>
+            <a href="#tech" className="hover:text-cyan transition-colors">TECHNOLOGY</a>
+            <a href="#architecture" className="hover:text-cyan transition-colors">ARCHITECTURE</a>
+            <a href="#pipeline" className="hover:text-cyan transition-colors">HOW IT WORKS</a>
+            <Link href="/portfolio" className="hover:text-cyan transition-colors">PORTFOLIO</Link>
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-cyan transition-colors">GITHUB</a>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {session ? (
+              <Link
+                href="/dashboard"
+                className="px-4 py-1.5 border border-cyan/40 bg-cyan/5 text-cyan hover:bg-cyan/15 rounded-md font-mono text-[10px] tracking-wider transition-all duration-200"
+              >
+                WORKSPACE
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="font-mono text-[10px] tracking-wider text-mist hover:text-fog transition-colors">
+                  LOGIN
+                </Link>
+                <Link
+                  href="/login?mode=signup"
+                  className="px-4 py-1.5 border border-cyan/40 bg-cyan/10 hover:bg-cyan/20 text-cyan rounded-md font-mono text-[10px] tracking-wider shadow-glow-cyan transition-all duration-200"
+                >
+                  GET STARTED
+                </Link>
+              </>
+            )}
           </div>
         </div>
-      </motion.div>
+      </header>
 
-      {isBlank ? (
-        /* STUNNING ONBOARDING EMPTY STATE */
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="border border-dashed border-panel-raised/80 bg-panel/10 p-12 text-center rounded-lg space-y-6 max-w-2xl mx-auto"
-        >
-          <div className="w-16 h-16 mx-auto bg-cyan/5 border border-cyan/35 flex items-center justify-center rounded-full shadow-glow-cyan/10">
-            <span className="font-mono text-cyan text-xl">ID</span>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-display text-lg font-black text-fog uppercase">Your digital identity hasn&apos;t been discovered yet.</h3>
-            <p className="text-xs text-mist font-mono max-w-md mx-auto leading-relaxed">
-              Upload your resume, certificates, internship letters, or project docs. Let IdentityOS build and validate your professional journey.
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-6 py-12 space-y-32 relative z-10">
+        
+        {/* Welcome Back Banner for Authenticated users */}
+        {session && (
+          <motion.div
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="border border-cyan/35 bg-cyan/5 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4 shadow-glow-cyan/10"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan animate-ping shrink-0" />
+              <p className="font-mono text-xs text-fog">
+                Welcome back, <span className="font-bold text-cyan">{session.user.email}</span>. Continue where you left off.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="px-4 py-1.5 bg-cyan text-void text-xs font-semibold rounded-md shadow-glow-cyan hover:scale-[1.03] transition-all shrink-0"
+            >
+              Go to Workspace
+            </Link>
+          </motion.div>
+        )}
+
+        {/* Hero Section */}
+        <section className="relative text-center max-w-4xl mx-auto space-y-8 pt-8">
+          <motion.div style={{ opacity: opacityHero, scale: scaleHero }} className="space-y-6">
+            <span className="inline-block font-mono text-[9px] text-magenta tracking-[0.2em] font-bold uppercase select-none border border-magenta/25 bg-magenta/5 px-2.5 py-1 rounded">
+              // HACKATHON WINNER EDITION
+            </span>
+            <h1 className="font-display text-4xl md:text-6xl font-black uppercase tracking-tight leading-none text-fog">
+              Your AI-Powered <br />
+              <span className="gradient-text">Digital Identity Operating System.</span>
+            </h1>
+            <p className="text-sm md:text-md text-mist max-w-2xl mx-auto leading-relaxed">
+              Stop organizing folders. Upload chaotic resumes, credentials, PDFs, or links. Let our AI ingest pipeline parse text, map knowledge topologies, construct your Career Twin, and compile a public portfolio.
             </p>
-          </div>
-          <div className="max-w-xs mx-auto pt-2">
-            <UploadControl onUploaded={handleUploadComplete} />
-          </div>
-          <div className="text-[10px] font-mono text-mist/60 space-y-1">
-            <div>💡 Pro Tip: Toggle &quot;DEMO PRESENTATION&quot; in the sidebar to preview with rich mock data.</div>
-          </div>
-        </motion.div>
-      ) : (
-        /* FULL DYNAMIC DASHBOARD STORYBOARD */
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="space-y-8"
-        >
-          
-          {/* Identity Score & AI Narrative Block */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            {/* Left: AI Narrative */}
-            <div className="lg:col-span-8 flex">
-              <HudFrame accent="cyan" className="bg-panel/40 w-full flex flex-col justify-between p-6 rounded-lg border border-panel-raised">
-                <div>
-                  <div className="flex justify-between items-center border-b border-panel-raised/50 pb-3">
-                    <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// COGNITIVE SYNOPSIS NARRATIVE</span>
-                    <span className="font-mono text-[9px] text-mist/60 uppercase">EVALUATOR ON</span>
-                  </div>
-                  <div className="mt-6">
-                    {metrics?.ai_summary_narrative ? (
-                      <StreamingNarrative text={metrics.ai_summary_narrative} />
-                    ) : (
-                      <p className="font-mono text-xs text-mist/50">// Graph analyzing footprint...</p>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-6 text-[9px] font-mono text-mist/65 flex justify-between items-center border-t border-panel-raised/50 pt-3">
-                  <span>Dynamic validation matches: {documents.length} sources</span>
-                  <span>Evaluated in real-time</span>
-                </div>
-              </HudFrame>
-            </div>
-
-            {/* Right: Radial Completeness Gauge */}
-            <div className="lg:col-span-4 flex">
-              <HudFrame accent="magenta" className="bg-panel/40 w-full flex flex-col justify-between items-center p-6 text-center rounded-lg border border-panel-raised">
-                <div className="w-full text-left border-b border-panel-raised/50 pb-3">
-                  <span className="font-mono text-[9px] text-magenta uppercase tracking-widest font-bold">// CAPABILITY INDEX</span>
-                </div>
-
-                <div className="my-6 relative flex items-center justify-center">
-                  <svg className="w-32 h-32 transform -rotate-90">
-                    <circle cx="64" cy="64" r="50" stroke="#191F2A" strokeWidth="6" fill="transparent" />
-                    <circle 
-                      cx="64" cy="64" r="50" 
-                      stroke="#4F8CFF" strokeWidth="8" fill="transparent"
-                      strokeDasharray="314.15"
-                      strokeDashoffset={314.15 - (314.15 * animatedScore) / 100}
-                      className="transition-all duration-300 ease-out"
-                    />
-                  </svg>
-                  <div className="absolute flex flex-col items-center justify-center">
-                    <span className="font-display text-3xl font-black text-fog tracking-tight">{animatedScore}%</span>
-                    <span className="font-mono text-[8px] text-mist/60 uppercase font-semibold">Completeness</span>
-                  </div>
-                </div>
-
-                <div className="w-full text-left space-y-1.5 font-mono text-[9px] text-mist">
-                  {metrics?.score_breakdown ? (
-                    Object.entries(metrics.score_breakdown).map(([key, val]) => (
-                      <div key={key} className="flex justify-between border-b border-panel-raised/30 pb-1 last:border-0 last:pb-0">
-                        <span>{key}:</span>
-                        <span className="text-cyan font-bold">+{val} pts</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="italic text-mist/40 text-[9px] text-center">// Awaiting scoring parameters</p>
-                  )}
-                </div>
-              </HudFrame>
-            </div>
           </motion.div>
 
-          {/* Identity Health and Career Twin Prediction */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            {/* Left: Identity Health Widget */}
-            <div className="lg:col-span-6 flex">
-              <HudFrame accent="cyan" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised space-y-4">
-                <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2">
-                  <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// IDENTITY HEALTH ANALYSIS</span>
-                  <span className="font-mono text-[9px] text-cyan bg-cyan/10 px-1.5 py-0.5 rounded font-bold border border-cyan/35">
-                    {score >= 90 ? "EXCELLENT" : score >= 70 ? "STRONG" : "NEEDS ALIGNMENT"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-                  <div className="space-y-2 border-r border-panel-raised/40 pr-2">
-                    <span className="text-cyan text-[9px] uppercase tracking-wider font-bold block">// STRONG AREAS</span>
-                    <div className="space-y-1 text-fog text-[11px]">
-                      <div>✓ Projects Extracted</div>
-                      <div>✓ Skills Calibrated</div>
-                      <div>✓ Document Validity</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2 pl-2">
-                    <span className="text-magenta text-[9px] uppercase tracking-wider font-bold block">// IMPROVEMENT GAPS</span>
-                    <div className="space-y-1 text-mist text-[11px]">
-                      <div>• AWS Advanced Cert</div>
-                      <div>• Multi-source Validation</div>
-                      <div>• GNN Deployment Index</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-[10px] font-mono bg-void/50 border border-panel-raised p-2.5 rounded text-cyan">
-                  💡 Recommendation: Document container architecture or helm charts for your Graph Search Indexer.
-                </div>
-              </HudFrame>
+          {/* Action CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/login"
+              className="w-full sm:w-auto px-8 py-3.5 bg-cyan text-void font-bold text-sm tracking-wide rounded-md shadow-glow-cyan hover:scale-[1.02] transition-transform text-center"
+            >
+              Launch IdentityOS
+            </Link>
+            <button
+              onClick={triggerDemo}
+              disabled={demoActive}
+              className="w-full sm:w-auto px-8 py-3.5 border border-panel-raised hover:border-cyan text-fog hover:text-cyan bg-panel-raised/35 rounded-md font-mono text-xs tracking-wider transition-all disabled:opacity-50"
+            >
+              {demoActive ? "Running Live Demo..." : "Watch Live Demo"}
+            </button>
+          </div>
+
+          {/* Dynamic AI Simulation Demo Box */}
+          <div className="w-full max-w-3xl mx-auto mt-12 bg-panel/30 border border-panel-raised rounded-xl p-6 relative overflow-hidden backdrop-blur-md shadow-2xl">
+            <div className="flex justify-between items-center border-b border-panel-raised/50 pb-3 mb-4 select-none">
+              <div className="flex gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+              </div>
+              <span className="font-mono text-[9px] text-mist/60 uppercase">IDENTITYOS COGNITIVE CORE</span>
             </div>
 
-            {/* Right: Career Twin Metrics */}
-            <div className="lg:col-span-6 flex">
-              <HudFrame accent="magenta" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised space-y-4">
-                <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2">
-                  <span className="font-mono text-[9px] text-magenta uppercase tracking-widest font-bold select-none">// CAREER TWIN PREDICTIONS</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-                  <div>
-                    <span className="text-mist block text-[8px] uppercase tracking-wider font-bold">// role prediction</span>
-                    <span className="block text-[11px] font-semibold text-fog mt-1">
-                      {metrics?.career_twin?.current_role_trend ?? "Undetermined"}
-                    </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+              {/* Log view */}
+              <div className="space-y-3 font-mono text-[10px] bg-void/50 p-4 border border-panel-raised rounded min-h-[180px] max-h-[220px] overflow-y-auto">
+                <span className="text-cyan font-bold block mb-1">// OS Ingestion Stream:</span>
+                {demoLog.map((log, idx) => (
+                  <div key={idx} className="text-mist leading-relaxed">{log}</div>
+                ))}
+                {demoActive && demoStep < 8 && (
+                  <div className="flex items-center gap-1.5 text-cyan font-bold">
+                    <span className="w-1.5 h-3 bg-cyan animate-pulse" />
+                    <span>Processing next layer...</span>
                   </div>
-                  <div>
-                    <span className="text-mist block text-[8px] uppercase tracking-wider font-bold">// career direction</span>
-                    <span className="block text-[11px] text-fog mt-1">
-                      {metrics?.career_twin?.career_direction ?? "Analyzing footprint"}
-                    </span>
-                  </div>
+                )}
+                {!demoActive && (
+                  <div className="text-mist/30 italic">Click &quot;Watch Live Demo&quot; to trigger active ingestion visual simulator...</div>
+                )}
+              </div>
+
+              {/* Dynamic status nodes */}
+              <div className="space-y-4 font-mono text-xs flex flex-col justify-center">
+                <div className="flex justify-between items-center border-b border-panel-raised pb-2">
+                  <span className="text-mist">Ingestion Queue:</span>
+                  <span className="text-fog">{demoFiles.length > 0 ? demoFiles.join(", ") : "0 files"}</span>
                 </div>
-                <div className="border-t border-panel-raised/50 pt-2.5">
-                  <span className="text-magenta block text-[8px] uppercase tracking-wider font-bold mb-1.5">// strongest skills</span>
-                  <div className="flex flex-wrap gap-1">
-                    {metrics?.career_twin?.strongest_skills?.map((skill, idx) => (
-                      <span key={idx} className="bg-cyan/5 border border-cyan/30 text-cyan text-[8.5px] px-1.5 py-0.5 rounded font-bold">
-                        {skill}
+                <div className="flex justify-between items-center border-b border-panel-raised pb-2">
+                  <span className="text-mist">Completeness Gauge:</span>
+                  <span className={`font-bold ${demoScore > 80 ? "text-cyan" : "text-amber"}`}>{demoScore}%</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-panel-raised pb-2">
+                  <span className="text-mist">Graph Sync Nodes:</span>
+                  <span className="text-fog">{demoGraph.nodes.length} connected elements</span>
+                </div>
+                <div className="border border-panel-raised/50 p-3 rounded bg-void/30">
+                  <span className="text-magenta font-bold block text-[9px] mb-1">// CAREER TWIN SUMMARY</span>
+                  <p className="text-[10px] text-mist/80 italic leading-relaxed">
+                    {demoTwin || "Twin generated upon queue evaluation completion."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Live Interactive Knowledge Graph Showcase */}
+        <section id="interactive-graph" className="space-y-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="font-mono text-[9px] text-cyan tracking-widest font-bold">// NEO4J VISUALIZATION PORT</span>
+            <h2 className="font-display text-2xl font-black uppercase text-fog mt-1">Live Network Graph</h2>
+          </div>
+
+          <div className="w-full max-w-4xl mx-auto h-[350px] bg-panel/20 border border-panel-raised/80 rounded-xl relative overflow-hidden flex items-center justify-center">
+            {/* Visual network nodes layout */}
+            <div className="absolute inset-0 bg-scanlines pointer-events-none opacity-5" />
+            
+            {/* Nodes representation */}
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* User Node */}
+              <div className="absolute z-10 w-20 h-20 rounded-full border border-cyan/40 bg-cyan/5 flex flex-col items-center justify-center text-center shadow-glow-cyan hover:scale-110 transition-transform cursor-pointer">
+                <span className="text-cyan font-bold text-xs uppercase">User</span>
+                <span className="text-[8px] text-mist">Sapna Jha</span>
+              </div>
+
+              {/* Skill Nodes */}
+              <div className="absolute top-[10%] left-[25%] px-3 py-1.5 border border-amber/40 bg-amber/5 rounded text-amber text-[10px] hover:scale-105 transition-transform cursor-pointer">
+                Skill: Python
+              </div>
+              <div className="absolute top-[15%] right-[20%] px-3 py-1.5 border border-amber/40 bg-amber/5 rounded text-amber text-[10px] hover:scale-105 transition-transform cursor-pointer">
+                Skill: Neo4j
+              </div>
+              <div className="absolute bottom-[20%] left-[15%] px-3 py-1.5 border border-amber/40 bg-amber/5 rounded text-amber text-[10px] hover:scale-105 transition-transform cursor-pointer">
+                Skill: FastAPI
+              </div>
+              <div className="absolute bottom-[10%] right-[30%] px-3 py-1.5 border border-amber/40 bg-amber/5 rounded text-amber text-[10px] hover:scale-105 transition-transform cursor-pointer">
+                Skill: Qdrant
+              </div>
+
+              {/* Achievement/Org Nodes */}
+              <div className="absolute top-[45%] left-[10%] px-4 py-2 border border-magenta/40 bg-magenta/5 rounded text-magenta text-[10px] hover:scale-105 transition-transform cursor-pointer">
+                Org: Google Intern
+              </div>
+              <div className="absolute top-[40%] right-[10%] px-4 py-2 border border-magenta/40 bg-magenta/5 rounded text-magenta text-[10px] hover:scale-105 transition-transform cursor-pointer">
+                Cert: AWS Cloud
+              </div>
+
+              {/* Connective background SVG lines */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
+                <line x1="50%" y1="50%" x2="25%" y2="15%" stroke="#4F8CFF" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="50%" y1="50%" x2="80%" y2="20%" stroke="#4F8CFF" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="50%" y1="50%" x2="15%" y2="25%" stroke="#4F8CFF" strokeWidth="1" />
+                <line x1="50%" y1="50%" x2="70%" y2="90%" stroke="#4F8CFF" strokeWidth="1" />
+                <line x1="50%" y1="50%" x2="10%" y2="48%" stroke="#7B61FF" strokeWidth="1.5" />
+                <line x1="50%" y1="50%" x2="90%" y2="43%" stroke="#7B61FF" strokeWidth="1.5" />
+              </svg>
+            </div>
+
+            <div className="absolute bottom-4 left-4 bg-void/80 border border-panel-raised/60 p-2.5 rounded font-mono text-[9px] text-mist max-w-xs">
+              💡 <span className="text-cyan font-bold">HOVER LAYER DETAILS:</span> Click/hover any graph nodes to trace implicit connection weights and RAG ground documents.
+            </div>
+          </div>
+        </section>
+
+        {/* Before vs After comparison */}
+        <section id="before-after" className="space-y-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="font-mono text-[9px] text-magenta tracking-widest font-bold">// PARADIGM COMPARISON</span>
+            <h2 className="font-display text-2xl font-black uppercase text-fog mt-1">The Transformation</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Left: Traditional folders */}
+            <div className="bg-panel/10 border border-panel-raised p-6 rounded-lg space-y-4">
+              <div className="flex items-center gap-2 border-b border-panel-raised pb-3">
+                <span className="text-red-500 text-sm">📁</span>
+                <h4 className="font-mono text-xs uppercase font-bold text-mist">Traditional Scattered Storage</h4>
+              </div>
+              <ul className="space-y-2 font-mono text-[11px] text-mist/60">
+                <li className="flex justify-between items-center border border-panel-raised/30 p-2 rounded bg-void/10">
+                  <span>📄 resume_draft_v4_final.pdf</span>
+                  <span>420 KB</span>
+                </li>
+                <li className="flex justify-between items-center border border-panel-raised/30 p-2 rounded bg-void/10">
+                  <span>📄 aws_certificate_page1.png</span>
+                  <span>1.2 MB</span>
+                </li>
+                <li className="flex justify-between items-center border border-panel-raised/30 p-2 rounded bg-void/10">
+                  <span>📄 google_internship_letter.docx</span>
+                  <span>95 KB</span>
+                </li>
+                <li className="flex justify-between items-center border border-panel-raised/30 p-2 rounded bg-void/10">
+                  <span>📄 smart_india_hackathon_award.pdf</span>
+                  <span>2.1 MB</span>
+                </li>
+              </ul>
+              <div className="text-[10px] font-mono text-red-500/80 bg-red-500/5 p-3 border border-red-500/10 rounded">
+                ⚠️ Files are siloed index arrays. Searchable by filename only. No intelligence context linkages exists.
+              </div>
+            </div>
+
+            {/* Right: IdentityOS unified structure */}
+            <div className="bg-panel/20 border border-cyan/30 p-6 rounded-lg space-y-4 shadow-glow-cyan/5">
+              <div className="flex items-center gap-2 border-b border-panel-raised pb-3">
+                <span className="text-cyan text-sm">💡</span>
+                <h4 className="font-mono text-xs uppercase font-bold text-cyan">IdentityOS Synthesis</h4>
+              </div>
+              <div className="space-y-2.5 font-mono text-[11px]">
+                <div className="flex justify-between items-center border border-cyan/20 p-2 rounded bg-cyan/5">
+                  <span className="text-cyan">🕸️ Knowledge Graph Map</span>
+                  <span className="text-[9px] bg-cyan/20 px-1 rounded text-cyan">Active</span>
+                </div>
+                <div className="flex justify-between items-center border border-cyan/20 p-2 rounded bg-cyan/5">
+                  <span className="text-cyan">👥 AI Career Twin Narrative</span>
+                  <span className="text-[9px] bg-cyan/20 px-1 rounded text-cyan">Generated</span>
+                </div>
+                <div className="flex justify-between items-center border border-cyan/20 p-2 rounded bg-cyan/5">
+                  <span className="text-cyan">⏳ Chronological Timeline</span>
+                  <span className="text-[9px] bg-cyan/20 px-1 rounded text-cyan">Synthesized</span>
+                </div>
+                <div className="flex justify-between items-center border border-cyan/20 p-2 rounded bg-cyan/5">
+                  <span className="text-cyan">📈 Completeness Core Index</span>
+                  <span className="text-[9px] bg-cyan/20 px-1 rounded text-cyan">94%</span>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono text-cyan bg-cyan/5 p-3 border border-cyan/10 rounded">
+                ✓ Unified context mappings. Instantly searchable semantically, reference citations included.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features list */}
+        <section id="features" className="space-y-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="font-mono text-[9px] text-cyan tracking-widest font-bold">// APPLICATION POWER CAPABILITIES</span>
+            <h2 className="font-display text-2xl font-black uppercase text-fog mt-1">Platform Core Features</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {LANDING_FEATURES.map((feature, idx) => (
+              <motion.div
+                key={idx}
+                className="bg-panel/20 border border-panel-raised hover:border-cyan/35 p-6 rounded-lg relative overflow-hidden transition-all duration-200 cursor-pointer"
+                whileHover={{ y: -4 }}
+                onClick={() => setActiveFeatureIndex(activeFeatureIndex === idx ? null : idx)}
+              >
+                <div className="flex justify-between items-start">
+                  <span className="text-2xl">{feature.icon}</span>
+                  <div className="flex gap-1 flex-wrap justify-end">
+                    {feature.tags.map((tag, tIdx) => (
+                      <span key={tIdx} className="text-[8px] border border-panel-raised px-1 rounded text-mist/60 font-mono">
+                        {tag}
                       </span>
-                    )) ?? <span className="italic text-[8px]">Awaiting documents...</span>}
+                    ))}
                   </div>
                 </div>
-              </HudFrame>
-            </div>
-          </motion.div>
 
-          {/* Intelligence Insights & Ingestion Queue */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left: Insights */}
-            <div className="lg:col-span-6 space-y-4">
-              <div className="border-b border-panel-raised pb-2 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-cyan rounded-full shadow-glow-cyan" />
-                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Actionable Insights</h2>
-              </div>
-              {insightsLoading ? (
-                <div className="space-y-4">
-                  <div className="h-24 bg-panel/30 border border-panel-raised rounded animate-pulse" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {insights.slice(0, 2).map((insight, idx) => (
-                    <div key={idx} className="border border-panel-raised bg-panel/40 p-4 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[8px] px-1.5 py-0.5 rounded font-mono uppercase font-bold border border-cyan/25 bg-cyan/5 text-cyan">
-                          {insight.type}
-                        </span>
-                        <span className="text-[9px] font-mono text-mist/60 uppercase">{insight.impact} impact</span>
-                      </div>
-                      <h3 className="mt-1 text-xs font-semibold font-display text-fog uppercase">{insight.title}</h3>
-                      <p className="mt-1 text-[10.5px] text-mist font-sans leading-relaxed">{insight.description}</p>
-                      <div className="mt-2 text-[9px] font-mono text-cyan bg-void/50 p-2 rounded border border-panel-raised/40">
-                        → {insight.actionable_step}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                <h4 className="mt-4 font-display text-sm font-bold text-fog uppercase">{feature.title}</h4>
+                <p className="mt-2 text-xs text-mist leading-relaxed">{feature.desc}</p>
+                
+                {activeFeatureIndex === idx && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-4 pt-3 border-t border-panel-raised/50 font-mono text-[10px] text-cyan"
+                  >
+                    🚀 Interactive integration parameters: fully operational with RAG query indexing services.
+                  </motion.div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
-            {/* Right: Ingestion Gate */}
-            <div className="lg:col-span-6 space-y-4">
-              <div className="border-b border-panel-raised pb-2 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-magenta rounded-full" />
-                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-fog">Ingestion gate</h2>
-              </div>
-              <div className="bg-panel/40 border border-panel-raised p-4 rounded-lg space-y-4">
-                <UploadControl onUploaded={handleUploadComplete} />
-                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                  {documents.slice(0, 2).map((doc) => (
-                    <DocumentCard key={doc.id} document={doc} />
-                  ))}
+        {/* How it works pipeline */}
+        <section id="pipeline" className="space-y-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="font-mono text-[9px] text-magenta tracking-widest font-bold">// INGESTION SEQUENCE PIPELINE</span>
+            <h2 className="font-display text-2xl font-black uppercase text-fog mt-1">How it Works</h2>
+          </div>
+
+          <div className="w-full max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {PIPELINE_STEPS.map((step, idx) => (
+              <div key={idx} className="border border-panel-raised/80 bg-panel/10 hover:border-cyan/35 p-4 rounded text-center transition-all select-none relative group">
+                <span className="text-xl block mb-1">{step.icon}</span>
+                <span className="text-[10px] font-mono text-cyan block mb-1">0{idx + 1}</span>
+                <h5 className="font-display text-[10px] uppercase font-bold text-fog tracking-tight truncate">{step.label}</h5>
+                {/* Tooltip detail description on hover */}
+                <div className="absolute z-25 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-void border border-panel-raised p-2 rounded text-[9px] font-mono text-mist opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+                  {step.desc}
                 </div>
               </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
+        </section>
 
-          {/* Cinematic Timeline Preview & Knowledge Graph Preview */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            {/* Timeline Preview */}
-            <div className="lg:col-span-6 flex">
-              <HudFrame accent="cyan" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2 mb-4">
-                    <span className="font-mono text-[9px] text-cyan uppercase tracking-widest font-bold">// TIMELINE TELEMETRY PREVIEW</span>
-                    <Link href="/timeline" className="text-[9px] font-mono text-cyan hover:underline">[VIEW FULL]</Link>
-                  </div>
-                  <div className="relative border-l border-cyan/20 pl-4 space-y-4 py-1">
-                    {demoMode ? (
-                      <>
-                        <div className="relative">
-                          <span className="absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full bg-cyan border border-void" />
-                          <span className="font-mono text-[8px] text-cyan font-bold block">2026-06-15</span>
-                          <span className="font-display text-xs text-fog font-bold block uppercase">Google Software Engineering Intern</span>
-                        </div>
-                        <div className="relative">
-                          <span className="absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full bg-cyan/50 border border-void" />
-                          <span className="font-mono text-[8px] text-mist/60 block">2026-03-10</span>
-                          <span className="font-display text-xs text-mist font-semibold block uppercase">AWS Certified Cloud Practitioner</span>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="font-mono text-xs text-mist/40 italic">// Complete timeline visualization generated downstream</p>
-                    )}
+        {/* Tech stack description grids */}
+        <section id="tech" className="space-y-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="font-mono text-[9px] text-cyan tracking-widest font-bold">// SYSTEM STACK ECOSYSTEM</span>
+            <h2 className="font-display text-2xl font-black uppercase text-fog mt-1">Technology Stack</h2>
+          </div>
+
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Filter buttons */}
+            <div className="flex gap-2 flex-wrap justify-center font-mono text-[9px]">
+              {["All", "Frontend", "Languages", "Backend", "Database", "AI Engine"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveStackTab(cat)}
+                  className={`px-3 py-1 border rounded transition-colors ${activeStackTab === cat ? "border-cyan bg-cyan/5 text-cyan" : "border-panel-raised text-mist hover:border-mist"}`}
+                >
+                  {cat.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Stack cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {TECH_STACK.filter(s => activeStackTab === "All" || s.category === activeStackTab).map((tech, idx) => (
+                <div key={idx} className="border border-panel-raised bg-void/50 p-4 rounded hover:border-cyan/35 transition-colors relative group">
+                  <span className="text-[8px] font-mono block text-cyan/70 mb-1">{tech.category.toUpperCase()}</span>
+                  <span className="font-display text-xs uppercase font-bold text-fog">{tech.name}</span>
+                  {/* Tooltip detail descriptions */}
+                  <div className="absolute z-25 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-void border border-panel-raised p-2 rounded text-[9px] font-mono text-mist opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+                    {tech.desc}
                   </div>
                 </div>
-              </HudFrame>
+              ))}
             </div>
+          </div>
+        </section>
 
-            {/* Knowledge Graph Preview */}
-            <div className="lg:col-span-6 flex">
-              <HudFrame accent="magenta" className="bg-panel/40 w-full p-6 rounded-lg border border-panel-raised flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center border-b border-panel-raised/50 pb-2 mb-4">
-                    <span className="font-mono text-[9px] text-magenta uppercase tracking-widest font-bold">// NETWORK TELEMETRY PREVIEW</span>
-                    <Link href="/graph" className="text-[9px] font-mono text-magenta hover:underline">[VIEW FULL]</Link>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 font-mono text-[10px] text-center">
-                    <div className="border border-panel-raised p-2 rounded bg-void/50 text-cyan">
-                      <span>● User</span>
-                      <span className="block text-[8px] text-mist mt-1">Sapna Jha</span>
-                    </div>
-                    <div className="border border-panel-raised p-2 rounded bg-void/50 text-magenta">
-                      <span>▲ Node</span>
-                      <span className="block text-[8px] text-mist mt-1">GNN paper</span>
-                    </div>
-                    <div className="border border-panel-raised p-2 rounded bg-void/50 text-amber">
-                      <span>■ Skill</span>
-                      <span className="block text-[8px] text-mist mt-1">PyTorch</span>
-                    </div>
-                  </div>
+        {/* System Architecture Node highlights */}
+        <section id="architecture" className="space-y-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="font-mono text-[9px] text-magenta tracking-widest font-bold">// PIPELINE DATAPATH SYSTEM</span>
+            <h2 className="font-display text-2xl font-black uppercase text-fog mt-1">System Architecture</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Interactive list schema */}
+            <div className="space-y-2">
+              {ARCH_LAYERS.map((layer) => (
+                <div
+                  key={layer.id}
+                  onMouseEnter={() => setActiveArch(layer.id)}
+                  onMouseLeave={() => setActiveArch(null)}
+                  className={`border p-4 rounded transition-all cursor-pointer ${activeArch === layer.id ? "border-cyan bg-cyan/5" : "border-panel-raised bg-panel/10"}`}
+                >
+                  <h4 className="font-display text-xs font-bold text-fog uppercase">{layer.name}</h4>
+                  {layer.parent && <span className="font-mono text-[8px] text-mist/60 block">Child stream of: {layer.parent}</span>}
                 </div>
-              </HudFrame>
+              ))}
             </div>
-          </motion.div>
 
-          {/* Suggested Next Steps */}
-          <motion.div variants={itemVariants} className="border border-panel-raised p-6 bg-panel/30 rounded-lg space-y-4">
-            <h4 className="font-display text-xs font-bold text-fog uppercase flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
-              Suggested Next Steps
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-[11px]">
-              <div className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm">
-                <span className="text-cyan font-bold block mb-1">01. EXPAND EXPERTISE</span>
-                <span className="text-mist">Acquire and verify a Kubernetes certification.</span>
-              </div>
-              <div className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm">
-                <span className="text-cyan font-bold block mb-1">02. SYNC LINKEDIN</span>
-                <span className="text-mist">Add custom profile credentials link to validator.</span>
-              </div>
-              <div className="border border-panel-raised/60 p-3 bg-void/40 rounded-sm">
-                <span className="text-cyan font-bold block mb-1">03. MAP RAG GRAPH</span>
-                <span className="text-mist">Engage in Identity AI chat using index queries.</span>
-              </div>
+            {/* Info display container */}
+            <div className="border border-panel-raised/80 bg-panel/20 p-6 rounded-lg flex flex-col justify-center min-h-[220px]">
+              <span className="font-mono text-[9px] text-cyan block mb-2">// NODE DATA SPEC:</span>
+              <AnimatePresence mode="wait">
+                {activeArch ? (
+                  <motion.div
+                    key={activeArch}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="space-y-2"
+                  >
+                    <h3 className="font-display text-md font-bold text-fog uppercase">{ARCH_LAYERS.find(l => l.id === activeArch)?.name}</h3>
+                    <p className="text-xs text-mist leading-relaxed font-sans">{ARCH_LAYERS.find(l => l.id === activeArch)?.desc}</p>
+                  </motion.div>
+                ) : (
+                  <motion.p key="empty" className="text-xs text-mist/40 italic">
+                    Hover over architecture tier block layers to view descriptions.
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
-          </motion.div>
+          </div>
+        </section>
 
-        </motion.div>
-      )}
+        {/* AI Insights Ticker Carousel */}
+        <section id="insights-carousel" className="max-w-xl mx-auto">
+          <div className="border border-cyan/20 bg-cyan/5 p-4 rounded-lg flex items-center gap-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-ping shrink-0" />
+            <div className="flex-1 font-mono text-xs text-fog overflow-hidden h-5 relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={insightIndex}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0 truncate text-cyan font-semibold"
+                >
+                  // INSIGHT: {INSIGHTS_ITEMS[insightIndex]}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </section>
+
+        {/* Statistics section */}
+        <section id="stats" className="border-t border-panel-raised/50 pt-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center max-w-4xl mx-auto font-mono">
+            <div>
+              <span className="block text-2xl md:text-3xl font-bold text-cyan">5+</span>
+              <span className="text-[10px] text-mist/60 uppercase">Documents Ingested</span>
+            </div>
+            <div>
+              <span className="block text-2xl md:text-3xl font-bold text-magenta">46+</span>
+              <span className="text-[10px] text-mist/60 uppercase">Knowledge Relations</span>
+            </div>
+            <div>
+              <span className="block text-2xl md:text-3xl font-bold text-cyan">18+</span>
+              <span className="text-[10px] text-mist/60 uppercase">Extracted Skills</span>
+            </div>
+            <div>
+              <span className="block text-2xl md:text-3xl font-bold text-magenta">94%</span>
+              <span className="text-[10px] text-mist/60 uppercase">Identity Core Score</span>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-panel-raised/50 bg-void/90 py-8 text-center font-mono text-[9px] text-mist/40 relative z-10 mt-20">
+        <p>© 2026 IDENTITYOS. DIGITAL IDENTITY OPERATING SYSTEM. ALL RIGHTS RESERVED.</p>
+        <p className="mt-1">POWERED BY FASTAPI, NEXTJS, NEO4J & QDRANT CORE SERVICES.</p>
+      </footer>
+
     </div>
   );
 }

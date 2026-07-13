@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 
 const SECTIONS = [
-  { href: "/", label: "WORKSPACE", code: "01" },
+  { href: "/dashboard", label: "WORKSPACE", code: "01" },
   { href: "/timeline", label: "TIMELINE", code: "02" },
   { href: "/graph", label: "KNOWLEDGE GRAPH", code: "03" },
   { href: "/chat", label: "IDENTITY AI", code: "04" },
