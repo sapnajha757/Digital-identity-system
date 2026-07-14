@@ -5,6 +5,7 @@ import { HudFrame } from "@/components/HudFrame";
 import { useAuth } from "@/components/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
+import { supabaseClient } from "@/lib/supabase";
 
 const TABS = [
   { id: "general", label: "General" },
@@ -19,6 +20,12 @@ export default function SettingsPage() {
   const { session } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
   const [isClient, setIsClient] = useState(false);
+  
+  // UI States
+  const [notification, setNotification] = useState<{ message: string, type: "success" | "error" } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // General Settings
   const [demoMode, setDemoMode] = useState(false);
@@ -32,6 +39,7 @@ export default function SettingsPage() {
   const [education, setEducation] = useState("");
   const [experience, setExperience] = useState("");
   const [currentRole, setCurrentRole] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   // AI Preferences
   const [aiMemory, setAiMemory] = useState(true);
@@ -48,43 +56,136 @@ export default function SettingsPage() {
   const [githubUrl, setGithubUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
 
+  const showNotification = (message: string, type: "success" | "error" = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   useEffect(() => {
     setIsClient(true);
-    setDemoMode(localStorage.getItem("dis_demo_mode") === "true");
-    setTheme(localStorage.getItem("dis_theme") || "dark");
-    setMotionPref(localStorage.getItem("dis_motion") || "smooth");
+    
+    const fetchProfile = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+          
+        const sessionEmail = session.user.email || "";
+        const metaName = session.user.user_metadata?.full_name || "";
+        let derivedName = metaName;
+        if (!derivedName && sessionEmail) {
+          const local = sessionEmail.split("@")[0].replace(/[0-9]+$/g, "");
+          const parts = local.split(/[\._-]/);
+          derivedName = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+        }
+        
+        setEmail(sessionEmail);
+        
+        if (data) {
+          setFullName(data.full_name || derivedName);
+          setEducation(data.education || "");
+          setExperience(data.experience || "");
+          setCurrentRole(data.current_role || "");
+          setGithubUrl(data.github_url || "");
+          setLinkedinUrl(data.linkedin_url || "");
+          setTheme(data.theme || "dark");
+          setMotionPref(data.motion_pref || "smooth");
+          setNotifications(data.notifications ?? true);
+          setDemoMode(data.demo_mode ?? false);
+          setAvatarUrl(data.avatar_url || "");
+          
+          if (data.ai_preferences) {
+            setAiMemory(data.ai_preferences.aiMemory ?? true);
+            setDailyBriefing(data.ai_preferences.dailyBriefing ?? true);
+            setAutoRec(data.ai_preferences.autoRec ?? true);
+            setCareerCopilot(data.ai_preferences.careerCopilot ?? true);
+          }
+        } else {
+          setFullName(derivedName);
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    const sessionEmail = session?.user?.email || "";
-    const metaName = session?.user?.user_metadata?.full_name || "";
-    let derivedName = metaName;
-    if (!derivedName && sessionEmail) {
-      const local = sessionEmail.split('@')[0].replace(/[0-9]+$/g, '');
-      const parts = local.split(/[\._-]/);
-      derivedName = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-    }
-
-    setFullName(localStorage.getItem("dis_profile_name") || derivedName);
-    setEmail(sessionEmail);
-    setEducation(localStorage.getItem("dis_profile_education") || "");
-    setExperience(localStorage.getItem("dis_profile_experience") || "");
-    setCurrentRole(localStorage.getItem("dis_profile_role") || "");
-    setGithubUrl(localStorage.getItem("dis_profile_github") || "");
-    setLinkedinUrl(localStorage.getItem("dis_profile_linkedin") || "");
+    fetchProfile();
   }, [session]);
 
   const initials = fullName
     ? fullName.split(/\s+/).map((w: string) => w.charAt(0)).join('').toUpperCase().substring(0, 2)
     : "??";
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !session?.user) return;
+    const file = e.target.files[0];
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${session.user.id}-${Math.random()}.${fileExt}`;
+    
+    setIsUploading(true);
+    
+    const { error: uploadError } = await supabaseClient.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+      
+    if (uploadError) {
+      showNotification("Error uploading avatar", "error");
+      setIsUploading(false);
+      return;
+    }
+    
+    const { data } = supabaseClient.storage.from("avatars").getPublicUrl(filePath);
+    setAvatarUrl(data.publicUrl);
+    
+    await supabaseClient.from("profiles").upsert({
+      id: session.user.id,
+      avatar_url: data.publicUrl
+    });
+    
+    setIsUploading(false);
+    showNotification("Avatar updated successfully", "success");
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("dis_profile_name", fullName);
-    localStorage.setItem("dis_profile_education", education);
-    localStorage.setItem("dis_profile_experience", experience);
-    localStorage.setItem("dis_profile_role", currentRole);
-    localStorage.setItem("dis_profile_github", githubUrl);
-    localStorage.setItem("dis_profile_linkedin", linkedinUrl);
-    alert("Profile saved successfully!");
+    if (!session?.user) return;
+    setIsSaving(true);
+    
+    const { error } = await supabaseClient.from("profiles").upsert({
+      id: session.user.id,
+      full_name: fullName,
+      education,
+      experience,
+      current_role: currentRole,
+      github_url: githubUrl,
+      linkedin_url: linkedinUrl,
+      theme,
+      motion_pref: motionPref,
+      notifications,
+      demo_mode: demoMode,
+      avatar_url: avatarUrl,
+      ai_preferences: {
+        aiMemory,
+        dailyBriefing,
+        autoRec,
+        careerCopilot
+      }
+    });
+    
+    setIsSaving(false);
+    
+    if (error) {
+      showNotification("Error saving profile", "error");
+      console.error(error);
+    } else {
+      showNotification("Profile saved successfully");
+      window.dispatchEvent(new Event("profile-updated"));
+    }
   };
 
   const handleResetPassword = (e: React.FormEvent) => {
@@ -97,11 +198,14 @@ export default function SettingsPage() {
     }, 1200);
   };
 
-  const toggleDemoMode = () => {
+  const toggleDemoMode = async () => {
     const next = !demoMode;
     setDemoMode(next);
-    localStorage.setItem("dis_demo_mode", next ? "true" : "false");
-    window.dispatchEvent(new Event("storage"));
+    
+    if (session?.user) {
+      await supabaseClient.from("profiles").update({ demo_mode: next }).eq("id", session.user.id);
+    }
+    
     window.dispatchEvent(new Event("demo-mode-changed"));
     window.location.reload();
   };
@@ -110,6 +214,26 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 bg-void text-fog min-h-screen flex flex-col space-y-10">
+      {/* Notifications */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: 20 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
+            className={clsx(
+              "fixed top-6 right-6 z-50 p-4 border rounded-lg backdrop-blur-xl shadow-2xl flex items-center gap-3 font-mono text-xs uppercase tracking-wider",
+              notification.type === "success" 
+                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" 
+                : "bg-red-500/10 border-red-500/50 text-red-400"
+            )}
+          >
+            <span className="text-lg">{notification.type === "success" ? "?" : "?"}</span>
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="border-b border-panel-raised/40 pb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-magenta/10 rounded-full blur-3xl opacity-50 pointer-events-none" />
@@ -171,8 +295,16 @@ export default function SettingsPage() {
                     </h2>
                     <form onSubmit={handleSaveProfile} className="space-y-6 font-sans text-sm text-mist relative z-10">
                       <div className="flex items-center gap-6 bg-void/40 p-4 rounded-xl border border-panel-raised/50">
-                        <div className="w-20 h-20 rounded-full bg-cyan/10 border border-cyan/40 flex items-center justify-center font-bold text-cyan text-2xl shrink-0 shadow-[0_0_20px_rgba(0,255,255,0.15)]">
-                          {initials}
+                        <div className="w-20 h-20 rounded-full bg-cyan/10 border border-cyan/40 flex items-center justify-center font-bold text-cyan text-2xl shrink-0 shadow-[0_0_20px_rgba(0,255,255,0.15)] relative overflow-hidden group">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            initials
+                          )}
+                          <label className="absolute inset-0 bg-void/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] uppercase">
+                            {isUploading ? "..." : "Upload"}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
+                          </label>
                         </div>
                         <div className="space-y-2">
                           <span className="text-xs font-mono text-cyan uppercase tracking-wider">Identity Avatar</span>
@@ -205,8 +337,8 @@ export default function SettingsPage() {
                         <textarea rows={3} value={experience} onChange={(e) => setExperience(e.target.value)} className="w-full bg-void/50 border border-panel-raised focus:border-cyan focus:ring-1 focus:ring-cyan rounded-lg p-3 text-fog outline-none transition-all leading-relaxed resize-none" />
                       </div>
 
-                      <button type="submit" className="px-6 py-2.5 border border-cyan/50 hover:border-cyan bg-cyan/10 hover:bg-cyan/20 text-cyan uppercase font-mono text-xs font-bold tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgba(0,255,255,0.1)] hover:shadow-[0_0_20px_rgba(0,255,255,0.2)]">
-                        Commit Profile
+                      <button type="submit" disabled={isSaving} className="px-6 py-2.5 border border-cyan/50 hover:border-cyan bg-cyan/10 hover:bg-cyan/20 disabled:opacity-50 disabled:cursor-not-allowed text-cyan uppercase font-mono text-xs font-bold tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgba(0,255,255,0.1)] hover:shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+                        {isSaving ? "Committing..." : "Commit Profile"}
                       </button>
                     </form>
                   </HudFrame>
