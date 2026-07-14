@@ -12,13 +12,28 @@ export default function SettingsPage() {
   const [motion, setMotion] = useState("smooth");
   const [notifications, setNotifications] = useState(true);
 
+  // Derive name from session
+  const email = session?.user?.email || "";
+  const metaName = session?.user?.user_metadata?.full_name || "";
+  let derivedName = "";
+  if (metaName) {
+    derivedName = metaName;
+  } else if (email) {
+    const local = email.split('@')[0].replace(/[0-9]+$/g, '');
+    const parts = local.split(/[\._-]/);
+    derivedName = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  }
+  const initials = derivedName
+    ? derivedName.split(/\s+/).map((w: string) => w.charAt(0)).join('').toUpperCase().substring(0, 2)
+    : "??";
+
   // Profile fields
-  const [fullName, setFullName] = useState("Alex Morgan");
-  const [education, setEducation] = useState("B.S. in Computer Science & AI Systems");
-  const [experience, setExperience] = useState("Associate AI Engineer & Full Stack developer");
-  const [githubUrl, setGithubUrl] = useState("https://github.com/demo-user");
-  const [linkedinUrl, setLinkedinUrl] = useState("https://linkedin.com/in/demo-user");
-  const [portfolioUrl, setPortfolioUrl] = useState("https://identityos.demo/profile");
+  const [fullName, setFullName] = useState("");
+  const [education, setEducation] = useState("");
+  const [experience, setExperience] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState("");
@@ -29,7 +44,15 @@ export default function SettingsPage() {
     setDemoMode(localStorage.getItem("dis_demo_mode") === "true");
     setTheme(localStorage.getItem("dis_theme") || "dark");
     setMotion(localStorage.getItem("dis_motion") || "smooth");
-  }, []);
+
+    // Load saved profile from localStorage or use session defaults
+    setFullName(localStorage.getItem("dis_profile_name") || derivedName);
+    setEducation(localStorage.getItem("dis_profile_education") || "");
+    setExperience(localStorage.getItem("dis_profile_experience") || "");
+    setGithubUrl(localStorage.getItem("dis_profile_github") || "");
+    setLinkedinUrl(localStorage.getItem("dis_profile_linkedin") || "");
+    setPortfolioUrl(localStorage.getItem("dis_profile_portfolio") || "");
+  }, [derivedName]);
 
   const toggleDemoMode = () => {
     const next = !demoMode;
@@ -42,7 +65,13 @@ export default function SettingsPage() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Profile configurations saved to system storage.");
+    localStorage.setItem("dis_profile_name", fullName);
+    localStorage.setItem("dis_profile_education", education);
+    localStorage.setItem("dis_profile_experience", experience);
+    localStorage.setItem("dis_profile_github", githubUrl);
+    localStorage.setItem("dis_profile_linkedin", linkedinUrl);
+    localStorage.setItem("dis_profile_portfolio", portfolioUrl);
+    alert("Profile saved successfully!");
   };
 
   const handleResetPassword = (e: React.FormEvent) => {
@@ -98,7 +127,7 @@ export default function SettingsPage() {
             <form onSubmit={handleSaveProfile} className="space-y-4 font-mono text-xs text-mist">
               <div className="flex items-center gap-4 border border-dashed border-panel-raised p-4 rounded bg-void/25">
                 <div className="w-16 h-16 rounded-full bg-cyan/10 border border-cyan/45 flex items-center justify-center font-bold text-cyan text-sm shrink-0">
-                  AM
+                  {initials}
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-cyan">// Profile Avatar</span>
