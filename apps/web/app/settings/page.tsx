@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { HudFrame } from "@/components/HudFrame";
 import { useAuth } from "@/components/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import { supabaseClient } from "@/lib/supabase";
+import Image from "next/image";
 
 const TABS = [
   { id: "general", label: "General" },
@@ -16,16 +17,25 @@ const TABS = [
   { id: "developer", label: "Developer & System" },
 ];
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const MAX_RETRIES = 3;
+
+interface ToastState {
+  message: string;
+  type: "success" | "error";
+  retryAction?: () => void;
+}
+
 export default function SettingsPage() {
   const { session } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
   const [isClient, setIsClient] = useState(false);
-  
-  // UI States
-  const [notification, setNotification] = useState<{ message: string, type: "success" | "error" } | null>(null);
+
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadState, setLoadState] = useState<"loading" | "loaded" | "error">("loading");
+  const [profileDirty, setProfileDirty] = useState(false);
 
   // General Settings
   const [demoMode, setDemoMode] = useState(false);
@@ -40,6 +50,7 @@ export default function SettingsPage() {
   const [experience, setExperience] = useState("");
   const [currentRole, setCurrentRole] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // AI Preferences
   const [aiMemory, setAiMemory] = useState(true);
@@ -50,186 +61,396 @@ export default function SettingsPage() {
   // Security
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
+  const [passwordStatus, setPasswordStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // Connected Accounts
   const [githubUrl, setGithubUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
 
-  const showNotification = (message: string, type: "success" | "error" = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
+  // Snapshot for optimistic revert
+  const snapshotRef = useRef<Record<string, any>>({});
+
+  const showToast = useCallback((message: string, type: "success" | "error" = "success", retryAction?: () => void) => {
+    setToast({ message, type, retryAction });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  // ---- Profile fetch ----
+  const fetchProfile = useCallback(async () => {
+    if (!session?.user) return;
+    setLoadState("loading");
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error) throw error;
+
+      const sessionEmail = session.user.email || "";
+      const metaName = session.user.user_metadata?.full_name || "";
+      let derivedName = metaName;
+      if (!derivedName && sessionEmail) {
+        const local = sessionEmail.split("@")[0].replace(/[0-9]+$/g, "");
+        const parts = local.split(/[\._-]/);
+        derivedName = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+      }
+
+      setEmail(sessionEmail);
+
+      const values = {
+        fullName: data?.full_name || derivedName,
+        education: data?.education || "",
+        experience: data?.experience || "",
+        currentRole: data?.current_role || "",
+        githubUrl: data?.github_url || "",
+        linkedinUrl: data?.linkedin_url || "",
+        theme: data?.theme || "dark",
+        motionPref: data?.motion_pref || "smooth",
+        notifications: data?.notifications ?? true,
+        demoMode: data?.demo_mode ?? false,
+        avatarUrl: data?.avatar_url || "",
+        aiMemory: data?.ai_preferences?.aiMemory ?? true,
+        dailyBriefing: data?.ai_preferences?.dailyBriefing ?? true,
+        autoRec: data?.ai_preferences?.autoRec ?? true,
+        careerCopilot: data?.ai_preferences?.careerCopilot ?? true,
+      };
+
+      setFullName(values.fullName);
+      setEducation(values.education);
+      setExperience(values.experience);
+      setCurrentRole(values.currentRole);
+      setGithubUrl(values.githubUrl);
+      setLinkedinUrl(values.linkedinUrl);
+      setTheme(values.theme);
+      setMotionPref(values.motionPref);
+      setNotifications(values.notifications);
+      setDemoMode(values.demoMode);
+      setAvatarUrl(values.avatarUrl);
+      setAiMemory(values.aiMemory);
+      setDailyBriefing(values.dailyBriefing);
+      setAutoRec(values.autoRec);
+      setCareerCopilot(values.careerCopilot);
+      snapshotRef.current = values;
+      setProfileDirty(false);
+      setLoadState("loaded");
+    } catch (err) {
+      console.error("Failed to load profile:", err);
+      setLoadState("error");
+    }
+  }, [session]);
 
   useEffect(() => {
     setIsClient(true);
-    
-    const fetchProfile = async () => {
-      if (!session?.user) return;
-      
-      try {
-        const { data, error } = await supabaseClient
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-          
-        const sessionEmail = session.user.email || "";
-        const metaName = session.user.user_metadata?.full_name || "";
-        let derivedName = metaName;
-        if (!derivedName && sessionEmail) {
-          const local = sessionEmail.split("@")[0].replace(/[0-9]+$/g, "");
-          const parts = local.split(/[\._-]/);
-          derivedName = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
-        }
-        
-        setEmail(sessionEmail);
-        
-        if (data) {
-          setFullName(data.full_name || derivedName);
-          setEducation(data.education || "");
-          setExperience(data.experience || "");
-          setCurrentRole(data.current_role || "");
-          setGithubUrl(data.github_url || "");
-          setLinkedinUrl(data.linkedin_url || "");
-          setTheme(data.theme || "dark");
-          setMotionPref(data.motion_pref || "smooth");
-          setNotifications(data.notifications ?? true);
-          setDemoMode(data.demo_mode ?? false);
-          setAvatarUrl(data.avatar_url || "");
-          
-          if (data.ai_preferences) {
-            setAiMemory(data.ai_preferences.aiMemory ?? true);
-            setDailyBriefing(data.ai_preferences.dailyBriefing ?? true);
-            setAutoRec(data.ai_preferences.autoRec ?? true);
-            setCareerCopilot(data.ai_preferences.careerCopilot ?? true);
-          }
-        } else {
-          setFullName(derivedName);
-        }
-      } catch (err) {
-        console.error("Failed to load profile:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchProfile();
-  }, [session]);
+  }, [fetchProfile]);
+
+  // ---- Mark dirty on field changes ----
+  useEffect(() => {
+    if (loadState !== "loaded") return;
+    const snap = snapshotRef.current;
+    if (!snap.fullName) return;
+    const dirty =
+      fullName !== snap.fullName ||
+      education !== snap.education ||
+      experience !== snap.experience ||
+      currentRole !== snap.currentRole ||
+      githubUrl !== snap.githubUrl ||
+      linkedinUrl !== snap.linkedinUrl ||
+      avatarUrl !== snap.avatarUrl;
+    setProfileDirty(dirty);
+  }, [fullName, education, experience, currentRole, githubUrl, linkedinUrl, avatarUrl, loadState]);
 
   const initials = fullName
-    ? fullName.split(/\s+/).map((w: string) => w.charAt(0)).join('').toUpperCase().substring(0, 2)
+    ? fullName.split(/\s+/).map((w: string) => w.charAt(0)).join("").toUpperCase().substring(0, 2)
     : "??";
+
+  // ---- Avatar upload with retry ----
+  const uploadAvatar = useCallback(async (file: File, attempt = 1): Promise<string | null> => {
+    if (!session?.user) return null;
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${session.user.id}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      if (attempt < MAX_RETRIES) {
+        return uploadAvatar(file, attempt + 1);
+      }
+      throw uploadError;
+    }
+
+    const { data } = supabaseClient.storage.from("avatars").getPublicUrl(filePath);
+    return data.publicUrl;
+  }, [session]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !session?.user) return;
     const file = e.target.files[0];
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${session.user.id}-${Math.random()}.${fileExt}`;
-    
-    setIsUploading(true);
-    
-    const { error: uploadError } = await supabaseClient.storage
-      .from("avatars")
-      .upload(filePath, file, { upsert: true });
-      
-    if (uploadError) {
-      showNotification("Error uploading avatar", "error");
-      setIsUploading(false);
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError("File exceeds 2MB limit");
+      showToast("Avatar too large (max 2MB)", "error");
       return;
     }
-    
-    const { data } = supabaseClient.storage.from("avatars").getPublicUrl(filePath);
-    setAvatarUrl(data.publicUrl);
-    
-    await supabaseClient.from("profiles").upsert({
-      id: session.user.id,
-      avatar_url: data.publicUrl
-    });
-    
-    setIsUploading(false);
-    showNotification("Avatar updated successfully", "success");
+
+    setAvatarError(null);
+    setIsUploading(true);
+    const prevAvatar = avatarUrl;
+
+    try {
+      const publicUrl = await uploadAvatar(file);
+      if (!publicUrl) throw new Error("Upload failed");
+
+      // Optimistic: set URL immediately
+      setAvatarUrl(publicUrl);
+
+      const { error: dbError } = await supabaseClient
+        .from("profiles")
+        .upsert({ id: session.user.id, avatar_url: publicUrl });
+
+      if (dbError) throw dbError;
+
+      showToast("Avatar updated successfully");
+    } catch (err) {
+      setAvatarUrl(prevAvatar);
+      setAvatarError("Upload failed after retries");
+      showToast("Avatar upload failed", "error", () => handleAvatarUpload(e));
+    } finally {
+      setIsUploading(false);
+    }
   };
 
+  // ---- Profile save with optimistic UI ----
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
     setIsSaving(true);
-    
-    const { error } = await supabaseClient.from("profiles").upsert({
-      id: session.user.id,
-      full_name: fullName,
-      education,
-      experience,
-      current_role: currentRole,
-      github_url: githubUrl,
-      linkedin_url: linkedinUrl,
-      theme,
-      motion_pref: motionPref,
-      notifications,
-      demo_mode: demoMode,
-      avatar_url: avatarUrl,
-      ai_preferences: {
+
+    const snap = { ...snapshotRef.current };
+    // Optimistic update — snapshot already reflects current state via inputs
+    try {
+      const { error } = await supabaseClient.from("profiles").upsert({
+        id: session.user.id,
+        full_name: fullName,
+        education,
+        experience,
+        current_role: currentRole,
+        github_url: githubUrl,
+        linkedin_url: linkedinUrl,
+        avatar_url: avatarUrl,
+        ai_preferences: {
+          aiMemory,
+          dailyBriefing,
+          autoRec,
+          careerCopilot,
+        },
+      });
+
+      if (error) throw error;
+
+      snapshotRef.current = {
+        ...snap,
+        fullName,
+        education,
+        experience,
+        currentRole,
+        githubUrl,
+        linkedinUrl,
+        avatarUrl,
         aiMemory,
         dailyBriefing,
         autoRec,
-        careerCopilot
-      }
-    });
-    
-    setIsSaving(false);
-    
-    if (error) {
-      showNotification("Error saving profile", "error");
-      console.error(error);
-    } else {
-      showNotification("Profile saved successfully");
+        careerCopilot,
+      };
+      setProfileDirty(false);
+      showToast("Profile saved successfully");
       window.dispatchEvent(new Event("profile-updated"));
+    } catch (err) {
+      showToast("Failed to save profile", "error", () => handleSaveProfile(e));
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordStatus("Authenticating reset request...");
-    setTimeout(() => {
-      setPasswordStatus("Success: Password has been updated securely.");
-      setCurrentPassword("");
-      setNewPassword("");
-    }, 1200);
+  // ---- Auto-save preferences (theme, motion, notifications, AI) ----
+  const savePreference = useCallback(async (field: string, value: any) => {
+    if (!session?.user) return;
+    try {
+      const { error } = await supabaseClient
+        .from("profiles")
+        .update({ [field]: value })
+        .eq("id", session.user.id);
+
+      if (error) throw error;
+      showToast("Preference updated");
+    } catch {
+      showToast(`Failed to update ${field}`, "error");
+    }
+  }, [session, showToast]);
+
+  const handleThemeChange = (val: string) => {
+    const prev = theme;
+    setTheme(val);
+    savePreference("theme", val).catch(() => setTheme(prev));
   };
 
+  const handleMotionChange = (val: string) => {
+    const prev = motionPref;
+    setMotionPref(val);
+    savePreference("motion_pref", val).catch(() => setMotionPref(prev));
+  };
+
+  const handleNotificationsChange = (val: boolean) => {
+    const prev = notifications;
+    setNotifications(val);
+    savePreference("notifications", val).catch(() => setNotifications(prev));
+  };
+
+  const handleAiPrefChange = (key: string, value: boolean) => {
+    const setter = { aiMemory: setAiMemory, dailyBriefing: setDailyBriefing, autoRec: setAutoRec, careerCopilot: setCareerCopilot }[key];
+    if (!setter) return;
+    setter(value);
+    const prefs = { aiMemory, dailyBriefing, autoRec, careerCopilot, [key]: value };
+    if (session?.user) {
+      supabaseClient
+        .from("profiles")
+        .update({ ai_preferences: prefs })
+        .eq("id", session.user.id)
+        .then(({ error }) => {
+          if (error) showToast(`Failed to update ${key}`, "error");
+        });
+    }
+  };
+
+  // ---- Password reset (real Supabase) ----
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user) return;
+    if (newPassword.length < 6) {
+      setPasswordStatus({ type: "error", message: "New password must be at least 6 characters" });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordStatus({ type: "success", message: "Updating password..." });
+
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordStatus({ type: "success", message: "Password updated successfully." });
+      setCurrentPassword("");
+      setNewPassword("");
+      showToast("Password updated successfully");
+    } catch (err) {
+      setPasswordStatus({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to update password",
+      });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  // ---- Demo mode toggle ----
   const toggleDemoMode = async () => {
     const next = !demoMode;
     setDemoMode(next);
-    
+
     if (session?.user) {
-      await supabaseClient.from("profiles").update({ demo_mode: next }).eq("id", session.user.id);
+      try {
+        const { error } = await supabaseClient
+          .from("profiles")
+          .update({ demo_mode: next })
+          .eq("id", session.user.id);
+        if (error) throw error;
+      } catch {
+        setDemoMode(!next);
+        showToast("Failed to toggle demo mode", "error");
+        return;
+      }
     }
-    
+
     window.dispatchEvent(new Event("demo-mode-changed"));
-    window.location.reload();
+    showToast(next ? "Demo mode enabled" : "Production mode enabled");
   };
 
-  if (!isClient) return null; // Avoid hydration mismatch
+  if (!isClient) return null;
+
+  // ---- Loading skeleton ----
+  if (loadState === "loading") {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 bg-void text-fog min-h-screen">
+        <div className="border-b border-panel-raised/40 pb-6 mb-8">
+          <div className="h-4 w-48 bg-panel-raised rounded animate-pulse mb-3" />
+          <div className="h-10 w-64 bg-panel-raised rounded animate-pulse" />
+          <div className="h-4 w-96 bg-panel-raised/50 rounded animate-pulse mt-4" />
+        </div>
+        <div className="flex gap-10">
+          <div className="w-64 space-y-2">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-12 bg-panel-raised/50 rounded-lg animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+            ))}
+          </div>
+          <div className="flex-1 space-y-6">
+            <div className="h-64 bg-panel-raised/30 rounded-2xl animate-pulse" />
+            <div className="h-48 bg-panel-raised/30 rounded-2xl animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Error state ----
+  if (loadState === "error") {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 bg-void text-fog min-h-screen flex flex-col items-center justify-center gap-6">
+        <div className="text-center space-y-3">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-red-500">// PROFILE_LOAD_FAILED</span>
+          <h2 className="font-display text-2xl font-black uppercase text-fog">Unable to load settings</h2>
+          <p className="text-sm text-mist max-w-md">The system could not retrieve your profile data. Check your connection and retry.</p>
+        </div>
+        <button
+          onClick={fetchProfile}
+          className="px-6 py-2.5 border border-cyan/50 bg-cyan/10 hover:bg-cyan/20 text-cyan font-mono text-xs uppercase tracking-widest rounded-lg transition-all shadow-glow-cyan"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 bg-void text-fog min-h-screen flex flex-col space-y-10">
-      {/* Notifications */}
+      {/* Toast notifications */}
       <AnimatePresence>
-        {notification && (
+        {toast && (
           <motion.div
             initial={{ opacity: 0, y: -20, x: 20 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
             className={clsx(
               "fixed top-6 right-6 z-50 p-4 border rounded-lg backdrop-blur-xl shadow-2xl flex items-center gap-3 font-mono text-xs uppercase tracking-wider",
-              notification.type === "success" 
-                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" 
+              toast.type === "success"
+                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
                 : "bg-red-500/10 border-red-500/50 text-red-400"
             )}
           >
-            <span className="text-lg">{notification.type === "success" ? "?" : "?"}</span>
-            {notification.message}
+            <span className="text-lg">{toast.type === "success" ? "✓" : "✗"}</span>
+            <span>{toast.message}</span>
+            {toast.retryAction && (
+              <button
+                onClick={toast.retryAction}
+                className="ml-2 px-2 py-1 border border-current/30 rounded text-[10px] hover:bg-current/10 transition-colors"
+              >
+                RETRY
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -240,9 +461,20 @@ export default function SettingsPage() {
         <p className="font-mono text-[10px] uppercase tracking-widest text-cyan mb-2">
           // IDENTITY_OS / SETTINGS_CENTER
         </p>
-        <h1 className="font-display text-4xl md:text-5xl font-black uppercase tracking-wider text-white">
-          Control Center
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="font-display text-4xl md:text-5xl font-black uppercase tracking-wider text-white">
+            Control Center
+          </h1>
+          {profileDirty && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="px-2 py-1 bg-amber/10 border border-amber/40 text-amber font-mono text-[9px] uppercase tracking-widest rounded"
+            >
+              Unsaved Changes
+            </motion.span>
+          )}
+        </div>
         <p className="mt-4 text-sm text-mist/80 leading-relaxed font-sans max-w-2xl">
           Configure your enterprise-grade AI Operating System. Manage workspace preferences, security configurations, data flows, and active cognitive processes.
         </p>
@@ -297,18 +529,25 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-6 bg-void/40 p-4 rounded-xl border border-panel-raised/50">
                         <div className="w-20 h-20 rounded-full bg-cyan/10 border border-cyan/40 flex items-center justify-center font-bold text-cyan text-2xl shrink-0 shadow-[0_0_20px_rgba(0,255,255,0.15)] relative overflow-hidden group">
                           {avatarUrl ? (
-                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                            <Image src={avatarUrl} alt="Avatar" fill className="object-cover rounded-full" />
                           ) : (
                             initials
                           )}
                           <label className="absolute inset-0 bg-void/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] uppercase">
-                            {isUploading ? "..." : "Upload"}
+                            {isUploading ? (
+                              <motion.span
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                className="w-5 h-5 border-2 border-t-cyan border-r-transparent rounded-full"
+                              />
+                            ) : "Upload"}
                             <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
                           </label>
                         </div>
                         <div className="space-y-2">
                           <span className="text-xs font-mono text-cyan uppercase tracking-wider">Identity Avatar</span>
                           <p className="text-xs text-mist/60 leading-normal max-w-md">Upload verified personnel imagery. Automated biometric hashing ensures global avatar consistency.</p>
+                          {avatarError && <p className="text-[10px] font-mono text-red-400">{avatarError}</p>}
                           <div className="inline-block px-2 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono uppercase rounded">Identity Verified</div>
                         </div>
                       </div>
@@ -348,14 +587,19 @@ export default function SettingsPage() {
                       <span className="text-magenta">02.</span> Connected Accounts
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[{ name: "GitHub", status: "Connected", url: githubUrl, setUrl: setGithubUrl, color: "text-emerald-400" },
-                        { name: "LinkedIn", status: "Connected", url: linkedinUrl, setUrl: setLinkedinUrl, color: "text-emerald-400" },
-                        { name: "Google Drive", status: "Not Connected", url: "", setUrl: () => {}, color: "text-amber-400" },
-                        { name: "Notion", status: "Not Connected", url: "", setUrl: () => {}, color: "text-amber-400" }].map((acc) => (
+                      {[{ name: "GitHub", url: githubUrl, setUrl: setGithubUrl, connected: !!githubUrl },
+                        { name: "LinkedIn", url: linkedinUrl, setUrl: setLinkedinUrl, connected: !!linkedinUrl },
+                        { name: "Google Drive", url: "", setUrl: () => {}, connected: false },
+                        { name: "Notion", url: "", setUrl: () => {}, connected: false }].map((acc) => (
                         <div key={acc.name} className="bg-void/50 border border-panel-raised p-4 rounded-xl flex flex-col gap-3">
                           <div className="flex justify-between items-center">
                             <span className="font-mono text-xs text-white uppercase">{acc.name}</span>
-                            <span className={`text-[10px] font-mono uppercase ${acc.color} bg-white/5 px-2 py-0.5 rounded`}>{acc.status}</span>
+                            <span className={clsx(
+                              "text-[10px] font-mono uppercase px-2 py-0.5 rounded",
+                              acc.connected ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber/10"
+                            )}>
+                              {acc.connected ? "Connected" : "Not Connected"}
+                            </span>
                           </div>
                           {acc.setUrl !== (() => {}) && (
                             <input
@@ -383,22 +627,22 @@ export default function SettingsPage() {
                       <div className="space-y-3">
                         <label className="block text-xs font-mono text-fog uppercase">Theme Engine</label>
                         <div className="flex gap-2">
-                          <button onClick={() => setTheme("dark")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", theme === "dark" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Dark HSL</button>
-                          <button onClick={() => setTheme("high-contrast")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", theme === "high-contrast" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>High Contrast</button>
+                          <button onClick={() => handleThemeChange("dark")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", theme === "dark" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Dark HSL</button>
+                          <button onClick={() => handleThemeChange("high-contrast")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", theme === "high-contrast" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>High Contrast</button>
                         </div>
                       </div>
                       <div className="space-y-3">
                         <label className="block text-xs font-mono text-fog uppercase">Motion Physics</label>
                         <div className="flex gap-2">
-                          <button onClick={() => setMotionPref("smooth")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", motionPref === "smooth" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Fluid</button>
-                          <button onClick={() => setMotionPref("reduced")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", motionPref === "reduced" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Reduced</button>
+                          <button onClick={() => handleMotionChange("smooth")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", motionPref === "smooth" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Fluid</button>
+                          <button onClick={() => handleMotionChange("reduced")} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", motionPref === "reduced" ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Reduced</button>
                         </div>
                       </div>
                       <div className="space-y-3">
                         <label className="block text-xs font-mono text-fog uppercase">Audio Telemetry</label>
                         <div className="flex gap-2">
-                          <button onClick={() => setNotifications(true)} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", notifications ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Enabled</button>
-                          <button onClick={() => setNotifications(false)} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", !notifications ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Muted</button>
+                          <button onClick={() => handleNotificationsChange(true)} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", notifications ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Enabled</button>
+                          <button onClick={() => handleNotificationsChange(false)} className={clsx("px-4 py-2 border rounded-lg text-xs uppercase font-mono transition-all", !notifications ? "border-cyan bg-cyan/10 text-cyan shadow-[0_0_10px_rgba(0,255,255,0.1)]" : "border-panel-raised bg-void/50 text-mist hover:border-mist/50")}>Muted</button>
                         </div>
                       </div>
                     </div>
@@ -409,30 +653,33 @@ export default function SettingsPage() {
               {activeTab === "ai" && (
                 <div className="space-y-8">
                   <HudFrame accent="magenta" className="bg-panel/40 backdrop-blur-xl p-8 rounded-2xl border border-panel-raised shadow-lg relative overflow-hidden">
-                     <div className="absolute top-0 right-0 w-96 h-96 bg-magenta/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-magenta/5 rounded-full blur-3xl pointer-events-none" />
                     <h2 className="font-display text-lg font-bold uppercase tracking-wider text-white border-b border-panel-raised/50 pb-3 mb-6 flex items-center gap-2">
                       <span className="text-magenta">01.</span> Neural Configuration
                     </h2>
                     <div className="space-y-6">
                       {[
-                        { id: 'memory', label: 'AI Memory Retention', desc: 'Allow the AI to retain context across sessions for personalized assistance.', state: aiMemory, setter: setAiMemory },
-                        { id: 'briefing', label: 'Daily Knowledge Briefing', desc: 'Receive synthesized updates on relevant technologies daily.', state: dailyBriefing, setter: setDailyBriefing },
-                        { id: 'autorec', label: 'Autonomous Recommendations', desc: 'AI proactively suggests portfolio improvements and resume tweaks.', state: autoRec, setter: setAutoRec },
-                        { id: 'copilot', label: 'Career Copilot Mode', desc: 'Enable aggressive interview prep and opportunity matching.', state: careerCopilot, setter: setCareerCopilot },
-                      ].map(setting => (
-                        <div key={setting.id} className="flex items-center justify-between p-4 bg-void/30 rounded-xl border border-panel-raised/50 hover:bg-void/50 transition-colors">
-                          <div className="space-y-1 pr-4">
-                            <span className="font-mono text-xs text-white uppercase">{setting.label}</span>
-                            <p className="text-xs text-mist/60">{setting.desc}</p>
+                        { id: "aiMemory", label: "AI Memory Retention", desc: "Allow the AI to retain context across sessions for personalized assistance." },
+                        { id: "dailyBriefing", label: "Daily Knowledge Briefing", desc: "Receive synthesized updates on relevant technologies daily." },
+                        { id: "autoRec", label: "Autonomous Recommendations", desc: "AI proactively suggests portfolio improvements and resume tweaks." },
+                        { id: "careerCopilot", label: "Career Copilot Mode", desc: "Enable aggressive interview prep and opportunity matching." },
+                      ].map((setting) => {
+                        const state = { aiMemory, dailyBriefing, autoRec, careerCopilot }[setting.id as "aiMemory" | "dailyBriefing" | "autoRec" | "careerCopilot"];
+                        return (
+                          <div key={setting.id} className="flex items-center justify-between p-4 bg-void/30 rounded-xl border border-panel-raised/50 hover:bg-void/50 transition-colors">
+                            <div className="space-y-1 pr-4">
+                              <span className="font-mono text-xs text-white uppercase">{setting.label}</span>
+                              <p className="text-xs text-mist/60">{setting.desc}</p>
+                            </div>
+                            <button
+                              onClick={() => handleAiPrefChange(setting.id, !state)}
+                              className={clsx("relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-magenta focus:ring-offset-2 focus:ring-offset-void", state ? "bg-magenta" : "bg-panel-raised")}
+                            >
+                              <span className={clsx("pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out", state ? "translate-x-5" : "translate-x-0")} />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setting.setter(!setting.state)}
-                            className={clsx("relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-magenta focus:ring-offset-2 focus:ring-offset-void", setting.state ? "bg-magenta" : "bg-panel-raised")}
-                          >
-                            <span className={clsx("pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out", setting.state ? "translate-x-5" : "translate-x-0")} />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </HudFrame>
                 </div>
@@ -446,20 +693,21 @@ export default function SettingsPage() {
                     </h2>
                     <form onSubmit={handleResetPassword} className="space-y-6 max-w-md">
                       <div className="space-y-2">
-                        <label className="block text-xs font-mono text-fog uppercase">Current Password</label>
-                        <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full bg-void/50 border border-panel-raised focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-lg p-3 text-fog outline-none transition-all" />
-                      </div>
-                      <div className="space-y-2">
                         <label className="block text-xs font-mono text-fog uppercase">New Secure Password</label>
-                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-void/50 border border-panel-raised focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-lg p-3 text-fog outline-none transition-all" />
+                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={6} required className="w-full bg-void/50 border border-panel-raised focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-lg p-3 text-fog outline-none transition-all" placeholder="At least 6 characters" />
                       </div>
                       {passwordStatus && (
-                        <div className="text-[11px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
-                          {passwordStatus}
+                        <div className={clsx(
+                          "text-[11px] font-mono p-3 rounded-lg border",
+                          passwordStatus.type === "success"
+                            ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                            : "text-red-400 bg-red-500/10 border-red-500/20"
+                        )}>
+                          {passwordStatus.message}
                         </div>
                       )}
-                      <button type="submit" className="px-6 py-2.5 border border-amber-500/50 hover:border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 uppercase font-mono text-xs font-bold tracking-widest rounded-lg transition-all">
-                        Rotate Keys
+                      <button type="submit" disabled={isUpdatingPassword} className="px-6 py-2.5 border border-amber-500/50 hover:border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 text-amber-500 uppercase font-mono text-xs font-bold tracking-widest rounded-lg transition-all">
+                        {isUpdatingPassword ? "Rotating..." : "Rotate Keys"}
                       </button>
                     </form>
                   </HudFrame>
@@ -470,18 +718,11 @@ export default function SettingsPage() {
                     </h2>
                     <div className="space-y-4">
                       <div className="bg-void/40 p-4 rounded-xl border border-cyan/20 flex justify-between items-center">
-                         <div>
-                           <p className="font-mono text-xs text-white uppercase">Current Session</p>
-                           <p className="text-xs text-mist/60">Windows Edge • IP 127.0.0.1</p>
-                         </div>
-                         <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded uppercase tracking-wider">Active</span>
-                      </div>
-                      <div className="bg-void/40 p-4 rounded-xl border border-panel-raised flex justify-between items-center opacity-70">
-                         <div>
-                           <p className="font-mono text-xs text-white uppercase">Mobile Device</p>
-                           <p className="text-xs text-mist/60">iOS Safari • Last seen 2 days ago</p>
-                         </div>
-                         <button className="text-[10px] font-mono text-red-400 hover:text-red-300 uppercase tracking-wider px-2 py-1">Revoke</button>
+                        <div>
+                          <p className="font-mono text-xs text-white uppercase">Current Session</p>
+                          <p className="text-xs text-mist/60">{email} · Active</p>
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded uppercase tracking-wider">Active</span>
                       </div>
                     </div>
                   </HudFrame>
@@ -495,7 +736,7 @@ export default function SettingsPage() {
                       <span className="text-emerald-500">01.</span> Data Extraction
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['Export Identity Report', 'Export Knowledge Graph', 'Export Resume JSON', 'Download Full Backup'].map((item) => (
+                      {["Export Identity Report", "Export Knowledge Graph", "Export Resume JSON", "Download Full Backup"].map((item) => (
                         <button key={item} className="p-4 bg-void/50 border border-panel-raised hover:border-emerald-500/50 rounded-xl flex items-center justify-between group transition-all">
                           <span className="font-mono text-xs text-mist group-hover:text-white uppercase">{item}</span>
                           <span className="text-emerald-500 font-mono text-lg opacity-0 group-hover:opacity-100 transition-opacity">↓</span>
@@ -528,32 +769,21 @@ export default function SettingsPage() {
                           {demoMode ? "Mock Data Live" : "Production Mode"}
                         </button>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                        <div className="space-y-1">
-                          <div className="text-[10px] text-mist/60 font-mono uppercase">API Health</div>
-                          <div className="text-emerald-400 font-mono text-xs uppercase flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Optimal
+                        {[
+                          { label: "API Health", value: "Optimal", color: "text-emerald-400", dot: "bg-emerald-400" },
+                          { label: "DB Status", value: "Connected", color: "text-emerald-400", dot: "bg-emerald-400" },
+                          { label: "AI Core", value: "Ready", color: "text-cyan", dot: "bg-cyan" },
+                          { label: "Vector DB", value: "Synced", color: "text-emerald-400", dot: "bg-emerald-400" },
+                        ].map((stat) => (
+                          <div key={stat.label} className="space-y-1">
+                            <div className="text-[10px] text-mist/60 font-mono uppercase">{stat.label}</div>
+                            <div className={clsx("font-mono text-xs uppercase flex items-center gap-1", stat.color)}>
+                              <span className={clsx("w-1.5 h-1.5 rounded-full", stat.dot)} /> {stat.value}
+                            </div>
                           </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-[10px] text-mist/60 font-mono uppercase">DB Status</div>
-                          <div className="text-emerald-400 font-mono text-xs uppercase flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-[10px] text-mist/60 font-mono uppercase">AI Core</div>
-                          <div className="text-cyan font-mono text-xs uppercase flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan" /> Ready
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-[10px] text-mist/60 font-mono uppercase">Vector DB</div>
-                          <div className="text-emerald-400 font-mono text-xs uppercase flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Synced
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   </HudFrame>
