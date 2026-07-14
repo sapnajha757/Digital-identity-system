@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiClient, DashboardMetricsResponse, TimelineEventOut, DocumentOut } from "@/lib/api-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -9,6 +10,7 @@ export default function PortfolioPage() {
   const [metrics, setMetrics] = useState<DashboardMetricsResponse | null>(null);
   const [timeline, setTimeline] = useState<TimelineEventOut[]>([]);
   const [docs, setDocs] = useState<DocumentOut[]>([]);
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +26,33 @@ export default function PortfolioPage() {
       })
       .catch((err) => console.error("Error loading portfolio data:", err))
       .finally(() => setLoading(false));
+
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
   }, []);
+
+  const email = session?.user?.email || "";
+  const fullName = session?.user?.user_metadata?.full_name || "";
+  let firstName = "";
+  let lastName = "";
+  if (fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    firstName = parts[0] || "";
+    lastName = parts.slice(1).join(" ") || "";
+  } else if (email) {
+    // Try to extract name from email: sapna.jha@ or sapna_jha@ or sapnajha@
+    const local = email.split('@')[0].replace(/[0-9]+$/g, ''); // strip trailing numbers
+    const parts = local.split(/[\._-]/);
+    if (parts.length >= 2) {
+      firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+      lastName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    } else {
+      // Single word email like sapnajha — use full local as first name
+      firstName = local.charAt(0).toUpperCase() + local.slice(1);
+      lastName = "";
+    }
+  }
+  const displayName = lastName ? `${firstName} ${lastName}` : firstName;
+  const initials = lastName ? `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() : firstName.substring(0, 2).toUpperCase();
 
   const skills = metrics?.career_twin?.strongest_skills ?? ["Python", "Machine Learning", "System Design"];
 
@@ -111,17 +139,17 @@ export default function PortfolioPage() {
             {/* Avatar Placeholder */}
             <div className="w-36 h-36 md:w-48 md:h-48 rounded-full border-2 border-cyan/40 bg-[#090D1A] overflow-hidden flex items-center justify-center p-2 relative shadow-[0_0_30px_rgba(0,240,255,0.15)] print:shadow-none print:border-gray-300">
               <div className="w-full h-full rounded-full bg-panel-raised/50 flex items-center justify-center border border-white/5 print:bg-gray-100">
-                <span className="text-4xl text-mist/30">AJ</span>
+                <span className="text-4xl text-mist/30">{initials}</span>
               </div>
             </div>
           </div>
           
           <div className="space-y-4 text-center md:text-left flex-1">
             <span className="font-mono text-[10px] text-magenta uppercase tracking-widest block font-bold print:text-black">
-              // Artificial Intelligence & Systems Architect
+              // {metrics?.career_twin?.career_direction || "Digital Identity Portfolio"}
             </span>
             <h1 className="text-4xl md:text-6xl font-black font-display text-white tracking-tight print:text-black">
-              Alex <span className="text-cyan">Johnson</span>
+              {firstName}{lastName ? <> <span className="text-cyan">{lastName}</span></> : null}
             </h1>
             <p className="text-mist font-light leading-relaxed max-w-2xl text-sm md:text-base print:text-gray-700">
               {metrics?.ai_summary_narrative ?? "A visionary systems architect dedicated to scalable machine learning deployments and complex data topologies. Uniting infrastructure resilience with algorithmic intelligence."}
@@ -129,16 +157,12 @@ export default function PortfolioPage() {
             <div className="flex flex-wrap gap-4 pt-2 justify-center md:justify-start font-mono text-[10px] uppercase text-mist">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-cyan" />
-                San Francisco, CA
+                {email}
               </span>
-              <a href="#" className="flex items-center gap-1.5 hover:text-cyan transition-colors">
+              <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-magenta" />
-                github.com/alexj
-              </a>
-              <a href="#" className="flex items-center gap-1.5 hover:text-cyan transition-colors">
-                <span className="w-2 h-2 rounded-full bg-[#0077b5]" />
-                linkedin.com/in/alexj
-              </a>
+                IdentityOS Portfolio
+              </span>
             </div>
           </div>
         </section>
@@ -164,7 +188,7 @@ export default function PortfolioPage() {
                       <h3 className="text-lg font-bold text-white print:text-black">{event.title}</h3>
                       <p className="text-xs font-mono text-mist/60 uppercase">{event.event_type}</p>
                       <p className="text-sm text-mist leading-relaxed mt-2 print:text-gray-700">
-                        Spearheaded core systems integration and lifecycle operations. Engineered highly scalable services impacting millions of requests per minute, aligning technical architectures with overarching business objectives.
+                        {event.description || "Document processed and analyzed by IdentityOS."}
                       </p>
                     </div>
                   </div>
@@ -185,7 +209,7 @@ export default function PortfolioPage() {
                     <span className="text-[9px] font-mono text-magenta uppercase print:text-gray-500">{doc.file_type} Reference</span>
                     <h4 className="text-white font-bold mt-1 mb-2 font-display print:text-black">{doc.original_filename}</h4>
                     <p className="text-xs text-mist leading-relaxed print:text-gray-600">
-                      Automated ingestion frameworks leveraging vector embeddings and graph traversal networks to structure unstructured telemetry data.
+                      Document uploaded and processed by IdentityOS intelligence pipeline.
                     </p>
                     <div className="mt-4 pt-3 border-t border-white/5 text-[9px] font-mono text-mist/50 flex justify-between">
                       <span>Verified Evidence</span>
@@ -214,45 +238,28 @@ export default function PortfolioPage() {
               </div>
             </section>
 
-            {/* Research & Publications */}
+            {/* Documents Summary */}
             <section className="space-y-6">
               <h2 className="text-xl font-bold font-display uppercase tracking-wider text-fog border-b border-white/5 pb-2 print:border-gray-300 print:text-black">
-                Research / Papers
+                Uploaded Documents
               </h2>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white print:text-black">Dynamic Node Traversal in Vector Stores</h4>
-                  <p className="text-[10px] font-mono text-amber">arXiv:2409.11200</p>
-                  <p className="text-xs text-mist leading-relaxed print:text-gray-600">A novel methodology combining dense embeddings with sparse graph navigation for real-time recommendation engines.</p>
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white print:text-black">LLM Orchestration Patterns</h4>
-                  <p className="text-[10px] font-mono text-amber">IEEE Software Eng. (Accepted)</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Certifications */}
-            <section className="space-y-6">
-              <h2 className="text-xl font-bold font-display uppercase tracking-wider text-fog border-b border-white/5 pb-2 print:border-gray-300 print:text-black">
-                Certifications
-              </h2>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan text-sm">AWS</span>
-                  <div>
-                    <h4 className="text-sm font-bold text-white print:text-black">Solutions Architect Professional</h4>
-                    <span className="text-[10px] font-mono text-mist">Credly Verified • 2024</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#0077b5] text-sm">CKA</span>
-                  <div>
-                    <h4 className="text-sm font-bold text-white print:text-black">Certified Kubernetes Administrator</h4>
-                    <span className="text-[10px] font-mono text-mist">CNCF • 2023</span>
-                  </div>
-                </li>
-              </ul>
+              {docs.length > 0 ? (
+                <ul className="space-y-3">
+                  {docs.map((doc, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-cyan text-sm">📄</span>
+                      <div>
+                        <h4 className="text-sm font-bold text-white print:text-black">{doc.original_filename}</h4>
+                        <span className="text-[10px] font-mono text-mist">
+                          {doc.file_type.toUpperCase()} • {doc.status === "completed" ? "✓ Processed" : doc.status}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-mist text-sm font-mono italic">No documents uploaded yet. Upload your resume and credentials to build your portfolio.</p>
+              )}
             </section>
 
           </div>

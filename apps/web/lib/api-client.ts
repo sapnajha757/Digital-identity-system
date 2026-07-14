@@ -15,87 +15,10 @@ export function isDemoModeActive(): boolean {
   return localStorage.getItem("dis_demo_mode") === "true";
 }
 
-export const supabase = {
-  auth: {
-    async getSession(): Promise<{ data: { session: Session | null }; error: any }> {
-      if (typeof window === "undefined") return { data: { session: null }, error: null };
-      const raw = localStorage.getItem("dis_session");
-      if (!raw) return { data: { session: null }, error: null };
-      try {
-        const session = JSON.parse(raw);
-        return { data: { session }, error: null };
-      } catch {
-        return { data: { session: null }, error: null };
-      }
-    },
-
-    async signInWithPassword({ email, password }: any): Promise<{ data: { session: Session | null } | null; error: any }> {
-      try {
-        const res = await fetch(`${API_BASE_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        if (!res.ok) {
-          const detail = await res.json().then(d => d.detail).catch(() => "Login failed");
-          return { data: null, error: new Error(detail) };
-        }
-        const data = await res.json();
-        const session: Session = {
-          access_token: data.access_token,
-          user: { email: data.email },
-        };
-        localStorage.setItem("dis_session", JSON.stringify(session));
-        listeners.forEach(cb => cb("SIGNED_IN", session));
-        return { data: { session }, error: null };
-      } catch (err: any) {
-        return { data: null, error: err };
-      }
-    },
-
-    async signUp({ email, password }: any): Promise<{ data: any; error: any }> {
-      try {
-        const res = await fetch(`${API_BASE_URL}/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        if (!res.ok) {
-          const detail = await res.json().then(d => d.detail).catch(() => "Registration failed");
-          return { data: null, error: new Error(detail) };
-        }
-        return { data: { user: { email } }, error: null };
-      } catch (err: any) {
-        return { data: null, error: err };
-      }
-    },
-
-    async signOut(): Promise<{ error: any }> {
-      localStorage.removeItem("dis_session");
-      listeners.forEach(cb => cb("SIGNED_OUT", null));
-      return { error: null };
-    },
-
-    onAuthStateChange(callback: AuthListener): { data: { subscription: { unsubscribe: () => void } } } {
-      listeners.add(callback);
-      this.getSession().then(({ data }) => {
-        callback("INITIAL_SESSION", data.session);
-      });
-      return {
-        data: {
-          subscription: {
-            unsubscribe() {
-              listeners.delete(callback);
-            },
-          },
-        },
-      };
-    },
-  },
-};
+import { supabaseClient } from "@/lib/supabase";
 
 async function authHeaders(): Promise<HeadersInit> {
-  const { data } = await supabase.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiClient, DashboardMetricsResponse } from "@/lib/api-client";
+import { supabaseClient } from "@/lib/supabase";
 import { HudFrame } from "@/components/HudFrame";
 import { motion } from "framer-motion";
 
@@ -10,6 +11,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
     // Get high contrast settings from DOM
@@ -21,7 +23,31 @@ export default function ProfilePage() {
       .then(setMetrics)
       .catch((err) => console.error("Error loading metrics:", err))
       .finally(() => setLoading(false));
+
+    supabaseClient.auth.getSession().then(({ data }) => setSession(data.session));
   }, []);
+
+  const email = session?.user?.email || "";
+  const fullName = session?.user?.user_metadata?.full_name || "";
+  let firstName = "";
+  let lastName = "";
+  if (fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    firstName = parts[0] || "";
+    lastName = parts.slice(1).join(" ") || "";
+  } else if (email) {
+    const local = email.split('@')[0].replace(/[0-9]+$/g, '');
+    const parts = local.split(/[\._-]/);
+    if (parts.length >= 2) {
+      firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+      lastName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    } else {
+      firstName = local.charAt(0).toUpperCase() + local.slice(1);
+      lastName = "";
+    }
+  }
+  const displayName = lastName ? `${firstName} ${lastName}` : firstName;
+  const initials = lastName ? `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() : firstName.substring(0, 2).toUpperCase();
 
   const toggleHighContrast = () => {
     const next = !highContrast;
@@ -61,14 +87,14 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full border-2 border-cyan bg-void flex items-center justify-center text-cyan font-display text-4xl font-bold shadow-glow-cyan/20">
-                  AM
+                  {initials || "??"}
                 </div>
                 <span className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-cyan border-2 border-void flex items-center justify-center text-[10px] font-bold text-void" title="Identity Verified">
                   ✓
                 </span>
               </div>
               <div>
-                <h3 className="font-display text-lg font-bold text-fog uppercase">Alex Morgan</h3>
+                <h3 className="font-display text-lg font-bold text-fog uppercase">{displayName || "User"}</h3>
                 <span className="font-mono text-[10px] text-cyan uppercase font-bold tracking-wider">// VERIFIED AGENT</span>
               </div>
             </div>
@@ -94,12 +120,12 @@ export default function ProfilePage() {
             <h4 className="font-mono text-[10px] text-magenta uppercase font-bold tracking-wider">// CONNECTED PROTOCOLS</h4>
             <div className="space-y-3 font-mono text-xs text-mist">
               <div className="flex justify-between items-center border-b border-panel-raised/20 pb-2">
-                <span>GitHub Link:</span>
-                <span className="text-cyan hover:underline cursor-pointer">@github/alexm</span>
+                <span>Email:</span>
+                <span className="text-cyan">{email || "Not connected"}</span>
               </div>
               <div className="flex justify-between items-center border-b border-panel-raised/20 pb-2">
-                <span>LinkedIn Ref:</span>
-                <span className="text-cyan hover:underline cursor-pointer">in/alex-morgan-dev</span>
+                <span>Auth Provider:</span>
+                <span className="text-cyan">{session?.user?.app_metadata?.provider || "Supabase"}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Verified Resume:</span>

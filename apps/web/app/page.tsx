@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { supabase } from "@/lib/api-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 // MOCKED PIPELINE STEPS
 const PIPELINE_STEPS = [

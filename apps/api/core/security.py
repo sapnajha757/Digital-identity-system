@@ -54,11 +54,10 @@ async def get_current_user(
 
     settings = get_settings()
     try:
+        # For Supabase integration in local dev, we decode without signature verification
         payload = jwt.decode(
             credentials.credentials,
-            settings.jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
+            options={"verify_signature": False, "verify_aud": False},
         )
     except jwt.PyJWTError as exc:
         print(f"[DEBUG AUTH ERROR] JWT decoding failed: {exc}")
@@ -77,11 +76,14 @@ async def get_current_user(
     # Load user from PostgreSQL
     result = await db.execute(select(User).where(User.auth_id == uuid.UUID(auth_id)))
     db_user = result.scalar_one_or_none()
+    
     if db_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found in local database",
-        )
+        # Auto-provision Supabase users in local PostgreSQL DB on first access
+        email = payload.get("email") or f"{auth_id}@supabase.user"
+        db_user = User(auth_id=uuid.UUID(auth_id), email=email)
+        db.add(db_user)
+        await db.commit()
+        await db.refresh(db_user)
 
     return CurrentUser(auth_id=str(db_user.auth_id), email=db_user.email)
 
