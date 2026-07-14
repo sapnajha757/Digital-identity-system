@@ -1,14 +1,18 @@
 import { clsx } from "clsx";
 import { ReactNode } from "react";
 
-const ACCENT_BORDER: Record<"cyan" | "magenta", string> = {
+const ACCENT_BORDER: Record<"cyan" | "magenta" | "amber" | "emerald", string> = {
   cyan: "border-cyan",
   magenta: "border-magenta",
+  amber: "border-amber-500",
+  emerald: "border-emerald-500",
 };
 
-const ACCENT_GLOW: Record<"cyan" | "magenta", string> = {
+const ACCENT_GLOW: Record<"cyan" | "magenta" | "amber" | "emerald", string> = {
   cyan: "group-hover:shadow-glow-cyan",
   magenta: "group-hover:shadow-glow-magenta",
+  amber: "group-hover:shadow-glow-amber",
+  emerald: "group-hover:shadow-glow-emerald",
 };
 
 /**
@@ -24,7 +28,7 @@ export function HudFrame({
   className,
 }: {
   children: ReactNode;
-  accent?: "cyan" | "magenta";
+  accent?: "cyan" | "magenta" | "amber" | "emerald";
   className?: string;
 }) {
   const borderColor = ACCENT_BORDER[accent];
