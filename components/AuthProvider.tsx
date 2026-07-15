@@ -46,8 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabaseClient.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut({ scope: "local" });
+    if (error) {
+      console.warn("Sign out failed while clearing local session", error);
+    }
+
     setSession(null);
+
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
   };
 
   return (
