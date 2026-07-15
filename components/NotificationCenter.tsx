@@ -60,7 +60,7 @@ export function NotificationCenter({ open, onClose, demoMode }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <div>
-                <span className="font-mono text-[9px] text-magenta tracking-widest uppercase font-bold">// AI NOTIFICATION CENTER</span>
+                <span className="font-mono text-[9px] text-magenta tracking-widest uppercase font-bold">{"// AI NOTIFICATION CENTER"}</span>
                 <h2 className="font-display text-sm font-bold text-fog mt-0.5 uppercase tracking-wide">Intelligence Alerts</h2>
               </div>
               <div className="flex items-center gap-2">
