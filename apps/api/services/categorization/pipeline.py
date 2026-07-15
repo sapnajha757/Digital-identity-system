@@ -81,3 +81,4 @@ async def run(document_id: uuid.UUID) -> None:
 
         metadata.ai_summary = summary
         await db.commit()
+        logger.info("Categorization completed for document %s", document_id)

@@ -95,6 +95,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         email=user.email,
         user=UserResponse.model_validate(user)
     )
+    logger.info("New user registered with email %s", req.email)
 
 @router.post("/login", response_model=AuthResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
