@@ -23,11 +23,15 @@ async def lifespan(app: FastAPI):
     import os
     os.makedirs("uploads", exist_ok=True)
 
-    ensure_collection()
+    try:
+        ensure_collection()
+        print("[INFO] Qdrant collection is ready.")
+    except Exception as e:
+        print(f"[WARN] Qdrant is unavailable; vector search will be disabled until it is running: {e}")
 
     # Create demo user on first run
-    async with async_session_factory() as db:
-        try:
+    try:
+        async with async_session_factory() as db:
             from sqlalchemy import text
             await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS hashed_password TEXT;"))
             await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();"))
@@ -35,8 +39,8 @@ async def lifespan(app: FastAPI):
 
             await get_or_create_demo_user(db)
             print("[INFO] Local authentication: Demo user and database columns are ready.")
-        except Exception as e:
-            print(f"[ERROR] Failed to ensure demo user/schema: {e}")
+    except Exception as e:
+        print(f"[WARN] Postgres is unavailable; database-backed endpoints will be disabled until it is running: {e}")
 
     yield
     # Shutdown: close long-lived driver connections cleanly

@@ -26,6 +26,13 @@ interface ToastState {
   retryAction?: () => void;
 }
 
+type ConnectedAccount = {
+  name: string;
+  url: string;
+  setUrl?: (url: string) => void;
+  connected: boolean;
+};
+
 export default function SettingsPage() {
   const { session } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
@@ -380,6 +387,13 @@ export default function SettingsPage() {
     showToast(next ? "Demo mode enabled" : "Production mode enabled");
   };
 
+  const connectedAccounts: ConnectedAccount[] = [
+    { name: "GitHub", url: githubUrl, setUrl: setGithubUrl, connected: !!githubUrl },
+    { name: "LinkedIn", url: linkedinUrl, setUrl: setLinkedinUrl, connected: !!linkedinUrl },
+    { name: "Google Drive", url: "", connected: false },
+    { name: "Notion", url: "", connected: false },
+  ];
+
   if (!isClient) return null;
 
   // ---- Loading skeleton ----
@@ -587,10 +601,7 @@ export default function SettingsPage() {
                       <span className="text-magenta">02.</span> Connected Accounts
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[{ name: "GitHub", url: githubUrl, setUrl: setGithubUrl, connected: !!githubUrl },
-                        { name: "LinkedIn", url: linkedinUrl, setUrl: setLinkedinUrl, connected: !!linkedinUrl },
-                        { name: "Google Drive", url: "", setUrl: () => {}, connected: false },
-                        { name: "Notion", url: "", setUrl: () => {}, connected: false }].map((acc) => (
+                      {connectedAccounts.map((acc) => (
                         <div key={acc.name} className="bg-void/50 border border-panel-raised p-4 rounded-xl flex flex-col gap-3">
                           <div className="flex justify-between items-center">
                             <span className="font-mono text-xs text-white uppercase">{acc.name}</span>
@@ -601,12 +612,12 @@ export default function SettingsPage() {
                               {acc.connected ? "Connected" : "Not Connected"}
                             </span>
                           </div>
-                          {acc.setUrl !== (() => {}) && (
+                          {acc.setUrl && (
                             <input
                               type="text"
                               placeholder={`${acc.name} URL`}
                               value={acc.url}
-                              onChange={(e) => acc.setUrl(e.target.value)}
+                              onChange={(e) => acc.setUrl?.(e.target.value)}
                               className="w-full bg-void/50 border border-panel-raised/50 focus:border-magenta focus:ring-1 focus:ring-magenta rounded p-2 text-xs text-fog outline-none font-mono"
                             />
                           )}
