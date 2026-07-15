@@ -6,20 +6,18 @@ reused; reloading per-request would be far too slow for a live demo.
 BGE models expect an instruction prefix on the *query* side only for
 retrieval tasks — passages are embedded as-is.
 """
-from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "BAAI/bge-large-en-v1.5"
 QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 
 _model: SentenceTransformer | None = None
 
-
-def _get_model() -> SentenceTransformer:
+def _get_model():
     global _model
     if _model is None:
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer(MODEL_NAME)
     return _model
-
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """Embeds document chunks (passages) for storage in Qdrant."""
