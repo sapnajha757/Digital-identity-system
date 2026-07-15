@@ -1,84 +1,64 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { Session, User } from "@supabase/supabase-js";
 import { supabaseClient } from "@/lib/supabase";
-import type { Session } from "@supabase/supabase-js";
 
 interface AuthContextValue {
   session: Session | null;
+  user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const PUBLIC_ROUTES = ["/", "/login", "/auth/reset-password"];
+const AuthContext = createContext<AuthContextValue>({
+  session: null,
+  user: null,
+  loading: true,
+  signOut: async () => {},
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    // Get current session on mount
+    let mounted = true;
+
     supabaseClient.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
       setSession(data.session);
       setLoading(false);
     });
 
-    // Listen for auth state changes (login / logout / recovery)
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((event, newSession) => {
-      setSession(newSession);
-      if (newSession) {
-        localStorage.removeItem("dis_demo_mode");
-        window.dispatchEvent(new Event("demo-mode-changed"));
+    const { data: listener } = supabaseClient.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!mounted) return;
+        setSession(newSession);
+        setLoading(false);
       }
-      
-      if (event === "PASSWORD_RECOVERY") {
-        router.replace("/auth/reset-password");
-      } else if (event === "SIGNED_IN" && PUBLIC_ROUTES.includes(window.location.pathname)) {
-        router.replace("/dashboard");
-      }
-    });
+    );
 
-    return () => listener.subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  useEffect(() => {
-    if (loading) return;
-    const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    if (!session && !isPublicRoute) {
-      router.replace("/login");
-    }
-  }, [session, loading, pathname, router]);
-
-  async function signOut() {
+  const signOut = async () => {
     await supabaseClient.auth.signOut();
-    localStorage.removeItem("dis_demo_mode");
-    localStorage.removeItem("dis_session");
-    window.dispatchEvent(new Event("demo-mode-changed"));
-    router.replace("/login");
-  }
+    setSession(null);
+  };
 
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-
-  // Avoid flashing protected content before the redirect check above runs.
-  if (loading || (!session && !isPublicRoute)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-void">
-        <p className="font-mono text-xs text-mist animate-pulse">// initializing session…</p>
-      </div>
-    );
-  }
-
-  return <AuthContext.Provider value={{ session, loading, signOut }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{ session, user: session?.user ?? null, loading, signOut }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  return useContext(AuthContext);
 }

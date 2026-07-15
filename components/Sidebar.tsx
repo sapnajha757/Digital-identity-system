@@ -1,299 +1,99 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { clsx } from "clsx";
 import { useAuth } from "@/components/AuthProvider";
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 
-const SECTIONS = [
-  { href: "/os/boot", label: "BOOT EXPERIENCE", code: "00", icon: "⚡" },
-  { href: "/dashboard", label: "WORKSPACE", code: "01", icon: "🖥️" },
-  { href: "/timeline", label: "TIMELINE", code: "02", icon: "⏳" },
-  { href: "/graph", label: "KNOWLEDGE GRAPH", code: "03", icon: "🕸️" },
-  { href: "/chat", label: "IDENTITY AI", code: "04", icon: "💬" },
-  { href: "/portfolio", label: "PORTFOLIO", code: "05", icon: "💼" },
-  { href: "/auditors", label: "AI AUDITORS", code: "06", icon: "🔍" },
-  { href: "/evolution", label: "EVOLUTION", code: "07", icon: "📈" },
-  { href: "/explainability", label: "EXPLAINABILITY", code: "08", icon: "🧠" },
-  { href: "/settings", label: "SETTINGS", code: "09", icon: "⚙️" },
-  { href: "/profile", label: "USER PROFILE", code: "10", icon: "👤" },
+const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+  { href: "/intelligence", label: "Intelligence", icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
+  { href: "/graph", label: "Knowledge Graph", icon: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" },
+  { href: "/chat", label: "AI Chat", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
+  { href: "/timeline", label: "Timeline", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+  { href: "/portfolio", label: "Portfolio", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
+  { href: "/evolution", label: "Evolution", icon: "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" },
+  { href: "/explainability", label: "Explainability", icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
+  { href: "/auditors", label: "Auditors", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
 ];
 
-const SCANNER_LOGS = [
-  "ANALYZING RELATIONSHIPS...",
-  "KNOWLEDGE GRAPH SYNCED",
-  "CAREER TWIN RECALCULATED",
-  "TIMELINE TELEMETRY NOMINAL",
-  "VECTOR METRICS OPTIMIZED",
-  "IDENTITY SCORES UPDATE READY",
-  "AI COPILOT READY",
-  "RAG ENGINE ACTIVE",
-];
-
-interface SidebarProps {
-  onStartStoryMode?: () => void;
-}
-
-export function Sidebar({ onStartStoryMode }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
-  const { session, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const [score, setScore] = useState<number | null>(null);
-  const [demoMode, setDemoMode] = useState(false);
-  const [presentationMode, setPresentationMode] = useState(false);
-  const [logIndex, setLogIndex] = useState(0);
-  const [animatedScore, setAnimatedScore] = useState(0);
-
-  useEffect(() => {
-    setDemoMode(localStorage.getItem("dis_demo_mode") === "true");
-    setPresentationMode(localStorage.getItem("dis_presentation_mode") === "true");
-    apiClient
-      .getDashboardMetrics()
-      .then((res) => {
-        setScore(res.identity_score);
-        let c = 0;
-        const target = res.identity_score;
-        const iv = setInterval(() => {
-          c = Math.min(c + 2, target);
-          setAnimatedScore(c);
-          if (c >= target) clearInterval(iv);
-        }, 16);
-      })
-      .catch(() => {});
-  }, [demoMode]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLogIndex((prev) => (prev + 1) % SCANNER_LOGS.length);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, []);
-
-  const toggleDemoMode = () => {
-    const next = !demoMode;
-    setDemoMode(next);
-    localStorage.setItem("dis_demo_mode", next ? "true" : "false");
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("demo-mode-changed"));
-    window.location.reload();
-  };
-
-  const togglePresentationMode = () => {
-    const next = !presentationMode;
-    setPresentationMode(next);
-    localStorage.setItem("dis_presentation_mode", next ? "true" : "false");
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("presentation-mode-changed"));
-    window.location.reload();
-  };
-
-  const r = 20;
-  const circ = 2 * Math.PI * r;
-  const dash = (circ * (animatedScore ?? 0)) / 100;
 
   return (
     <aside
-      className={clsx(
-        "fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-white/5 bg-[#0A0E1A]/60 backdrop-blur-xl md:flex transition-all duration-300 ease-in-out",
-        collapsed ? "w-20" : "w-64"
-      )}
+      className={`${
+        collapsed ? "w-16" : "w-60"
+      } shrink-0 border-r border-slate-800 bg-slate-900 flex flex-col transition-all duration-200`}
     >
-      {/* Brand Header */}
-      <div className="border-b border-white/5 px-5 py-4 flex justify-between items-center shrink-0">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
         {!collapsed && (
-          <div>
-            <span className="font-mono text-[8px] text-magenta tracking-widest uppercase font-bold">
-              // IDENTITY.OS
-            </span>
-            <p className="font-display text-base font-black tracking-widest gradient-text">IDENTITY<span className="text-cyan">OS</span></p>
-          </div>
-        )}
-        {collapsed && (
-          <span className="font-display text-base font-black tracking-widest gradient-text mx-auto">ID</span>
+          <Link href="/dashboard" className="font-display text-lg font-bold text-white">
+            DI Platform
+          </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="text-mist hover:text-cyan font-mono text-[10px] uppercase transition-colors shrink-0"
-          title="Toggle Sidebar"
-          aria-label="Toggle navigation sidebar"
-          aria-expanded={!collapsed}
+          className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          aria-label="Toggle sidebar"
         >
-          {collapsed ? "→" : "←"}
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto" aria-label="Main Navigation">
-        {(presentationMode ? SECTIONS.filter(s => ["/dashboard", "/portfolio", "/auditors"].includes(s.href)) : SECTIONS).map((section) => {
-          const active = pathname === section.href;
-          return (
-            <Link
-              key={section.href}
-              href={section.href}
-              aria-label={section.label}
-              aria-current={active ? "page" : undefined}
-              className={clsx(
-                "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 font-mono text-[11px] tracking-wide transition-all duration-200 border",
-                active
-                  ? "border-cyan/20 bg-cyan/5 text-cyan font-semibold shadow-[0_0_12px_rgba(79,140,255,0.1)]"
-                  : "border-transparent text-mist hover:border-white/5 hover:bg-white/4 hover:text-fog"
-              )}
-            >
-              {active && (
-                <span className="absolute left-0 top-1/4 bottom-1/4 w-0.5 rounded-r bg-cyan" />
-              )}
-              {!collapsed && (
-                <span className="text-sm shrink-0 opacity-70">{section.icon}</span>
-              )}
-              <span className={clsx("transition-colors text-[9px]", active ? "text-magenta font-semibold" : "text-mist/50")}>
-                {section.code}
-              </span>
-              {!collapsed && (
-                <span className="flex-1 truncate text-[10px]">{section.label}</span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto py-4">
+        <ul className="space-y-1 px-2">
+          {navItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-primary-600 text-white"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                  </svg>
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      {/* AI Ticker */}
-      {!collapsed && (
-        <div className="mx-3 my-1 border border-white/5 bg-void/40 px-3 py-2 rounded-lg flex items-center gap-2 overflow-hidden select-none">
-          <motion.span
-            className="w-1.5 h-1.5 rounded-full bg-cyan shrink-0"
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={logIndex}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.3 }}
-              className="font-mono text-[8px] text-cyan/70 tracking-wider truncate uppercase"
-            >
-              {SCANNER_LOGS[logIndex]}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="border-t border-white/5 px-4 py-4 space-y-3 shrink-0">
-        {/* Start Presentation button */}
-        {!collapsed && onStartStoryMode && (
-          <button
-            onClick={onStartStoryMode}
-            className="w-full py-2 px-3 rounded-lg border border-cyan/30 bg-cyan/5 text-cyan font-mono text-[9px] uppercase tracking-wider hover:bg-cyan/10 hover:border-cyan transition-all font-bold flex items-center justify-center gap-2"
-          >
-            <span>▶</span> Start Presentation
-          </button>
-        )}
-
-        {/* Demo / Presentation toggles */}
-        {!collapsed && (
-          <div className="bg-white/3 border border-white/5 p-2.5 rounded-lg space-y-2.5">
-            <div className="flex justify-between items-center">
-              <span className="font-mono text-[8px] text-magenta font-bold tracking-wider">DEMO PRESET</span>
-              <button
-                onClick={toggleDemoMode}
-                className={clsx(
-                  "w-8 h-4 rounded-full relative p-0.5 transition-colors border duration-200",
-                  demoMode ? "bg-cyan/20 border-cyan" : "bg-white/10 border-white/10"
-                )}
-              >
-                <div
-                  className={clsx(
-                    "w-2.5 h-2.5 rounded-full bg-cyan shadow-[0_0_6px_rgba(79,140,255,0.6)] transition-transform duration-200",
-                    demoMode ? "translate-x-4" : "translate-x-0"
-                  )}
-                />
-              </button>
-            </div>
-            <div className="flex justify-between items-center border-t border-white/5 pt-2">
-              <span className="font-mono text-[8px] text-cyan font-bold tracking-wider">RECRUITER VIEW</span>
-              <button
-                onClick={togglePresentationMode}
-                className={clsx(
-                  "w-8 h-4 rounded-full relative p-0.5 transition-colors border duration-200",
-                  presentationMode ? "bg-cyan/20 border-cyan" : "bg-white/10 border-white/10"
-                )}
-              >
-                <div
-                  className={clsx(
-                    "w-2.5 h-2.5 rounded-full bg-cyan shadow-[0_0_6px_rgba(79,140,255,0.6)] transition-transform duration-200",
-                    presentationMode ? "translate-x-4" : "translate-x-0"
-                  )}
-                />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Animated identity score ring */}
-        {!collapsed && score !== null && (
-          <div className="flex items-center gap-3 bg-white/3 border border-white/5 px-3 py-2 rounded-lg">
-            <svg width={48} height={48} style={{ transform: "rotate(-90deg)" }}>
-              <circle cx={24} cy={24} r={r} stroke="#191F2A" strokeWidth={3.5} fill="none" />
-              <circle
-                cx={24}
-                cy={24}
-                r={r}
-                stroke="#4F8CFF"
-                strokeWidth={3.5}
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={circ}
-                strokeDashoffset={circ - dash}
-                style={{ transition: "stroke-dashoffset 0.6s ease", filter: "drop-shadow(0 0 4px rgba(79,140,255,0.5))" }}
-              />
-            </svg>
-            <div>
-              <span className="font-display font-black text-base text-fog block leading-none">{animatedScore}%</span>
-              <span className="font-mono text-[8px] text-mist/60 uppercase">Core ID Index</span>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          <motion.span
-            className="h-1.5 w-1.5 rounded-full bg-cyan shrink-0"
-            animate={{ boxShadow: ["0 0 0 0 rgba(79,140,255,0.4)", "0 0 0 4px rgba(79,140,255,0)"] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          {!collapsed && (
-            <span className="font-mono text-[9px] uppercase tracking-widest text-cyan font-semibold">System active</span>
-          )}
-        </div>
-
-        {!collapsed && (
-          <div className="space-y-1 font-mono text-[9px] text-mist/50">
-            <div className="flex justify-between">
-              <span>Search:</span>
-              <kbd className="px-1 bg-white/5 rounded border border-white/5 text-[8px]">Ctrl+K</kbd>
-            </div>
-            <div className="flex justify-between">
-              <span>Copilot:</span>
-              <kbd className="px-1 bg-white/5 rounded border border-white/5 text-[8px]">Ctrl+I</kbd>
-            </div>
-          </div>
-        )}
-
-        {!collapsed && session?.user?.email && (
-          <p className="truncate font-mono text-[9px] text-mist/60" title={session.user.email}>
-            {session.user.email}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={signOut}
-          className="font-mono text-[10px] uppercase tracking-widest text-mist transition-colors hover:text-magenta block w-full text-left"
+      <div className="border-t border-slate-800 p-2">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ${
+            pathname === "/settings" ? "bg-slate-800 text-white" : ""
+          }`}
+          title={collapsed ? "Settings" : undefined}
         >
-          {collapsed ? "[OUT]" : "[ Log out ]"}
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {!collapsed && <span>Settings</span>}
+        </Link>
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-error-400 hover:bg-slate-800 transition-colors"
+          title={collapsed ? "Sign Out" : undefined}
+        >
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
     </aside>

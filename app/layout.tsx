@@ -1,30 +1,31 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { AppShell } from "@/components/AppShell";
-import { AuthProvider } from "@/components/AuthProvider";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  weight: ["500", "600", "700"],
-});
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  weight: ["400", "500", "600"],
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains",
-  weight: ["400", "500"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "IdentityOS — Professional Dossier & Knowledge Graph",
-  description: "AI-powered professional identity constructing your dynamic professional twin.",
+  title: "Digital Identity Platform",
+  description: "AI-powered digital identity and knowledge management platform",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -33,16 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen bg-void text-fog antialiased font-sans select-none overflow-x-hidden relative">
-        <div className="aurora-container" aria-hidden="true">
-          <div className="aurora-orb aurora-1" />
-          <div className="aurora-orb aurora-2" />
-        </div>
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
-      </body>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }
