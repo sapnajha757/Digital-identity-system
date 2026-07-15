@@ -10,7 +10,7 @@ retrieval tasks — passages are embedded as-is.
 MODEL_NAME = "BAAI/bge-large-en-v1.5"
 QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 
-_model: SentenceTransformer | None = None
+_model = None
 
 def _get_model():
     global _model
