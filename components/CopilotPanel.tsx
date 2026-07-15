@@ -162,7 +162,7 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan opacity-75" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan" />
                     </span>
-                    <span className="font-mono text-[8px] text-cyan font-bold uppercase tracking-widest">// AI CHIEF OF STAFF ACTIVE</span>
+                    <span className="font-mono text-[8px] text-cyan font-bold uppercase tracking-widest">{"// AI CHIEF OF STAFF ACTIVE"}</span>
                   </div>
                   <h3 className="font-display text-sm font-bold uppercase tracking-wider text-fog">Workspace Copilot V2</h3>
                 </div>
@@ -204,7 +204,7 @@ export function CopilotPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               {activeTab === "briefing" && (
                 <div className="p-4 space-y-4">
                   <div className="bg-void/40 border border-cyan/10 rounded-xl p-4">
-                    <span className="font-mono text-[8px] text-magenta uppercase tracking-widest block mb-2">// TODAY&apos;S AI BRIEFING</span>
+                    <span className="font-mono text-[8px] text-magenta uppercase tracking-widest block mb-2">{"// TODAY'S AI BRIEFING"}</span>
                     <p className="text-[11px] text-mist/80 leading-relaxed">
                       Your identity profile is at <strong className="text-cyan">92% health</strong> — up from 85% last month. You have <strong className="text-amber-400">{recommendations.filter(r => r.priority === "critical").length} critical recommendations</strong> and <strong className="text-cyan">{notificationCount} active insights</strong>.
                     </p>

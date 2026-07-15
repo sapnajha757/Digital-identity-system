@@ -109,7 +109,7 @@ export function IdentityHealthMonitor() {
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <span className="font-mono text-[8px] text-cyan/70 uppercase tracking-widest block mb-1">// IDENTITY HEALTH INDEX</span>
+          <span className="font-mono text-[8px] text-cyan/70 uppercase tracking-widest block mb-1">{"// IDENTITY HEALTH INDEX"}</span>
           <div className="flex items-baseline gap-2">
             <span className="font-display text-3xl font-bold gradient-text">{health.overallHealth}</span>
             <span className="font-mono text-[10px] text-mist/50">/100</span>
