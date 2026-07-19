@@ -36,7 +36,7 @@ export default function DashboardPage() {
             <h3 className="font-display text-lg font-semibold text-white mb-4">Recent Activity</h3>
             <div className="space-y-3">
               {recentActivity.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
+                <div key={item.id} className="flex items-center justify-between border-b border-white/[0.06] py-2 last:border-0">
                   <div>
                     <p className="text-sm text-white">{item.action}</p>
                     <p className="text-xs text-slate-500">{item.time}</p>
@@ -63,9 +63,9 @@ export default function DashboardPage() {
                     <span className="text-slate-300">{item.label}</span>
                     <span className="text-white font-medium">{item.value}%</span>
                   </div>
-                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
                     <div
-                      className="h-full bg-primary-600 rounded-full transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-300 shadow-[0_0_12px_rgba(34,211,238,0.4)] transition-all duration-500"
                       style={{ width: `${item.value}%` }}
                     />
                   </div>

@@ -11,7 +11,7 @@ export function Card({
   return (
     <div
       className={clsx(
-        "rounded-xl border border-slate-800 bg-slate-900 p-6",
+        "rounded-2xl border border-white/[0.08] bg-slate-900/60 p-6 shadow-xl shadow-black/20 backdrop-blur-xl",
         className
       )}
     >
@@ -32,17 +32,17 @@ export function StatCard({
   icon?: ReactNode;
 }) {
   return (
-    <Card>
+    <Card className="group transition duration-200 hover:-translate-y-0.5 hover:border-primary-300/25 hover:bg-slate-900/80">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-400">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+          <p className="mt-2 font-display text-3xl font-semibold tracking-tight text-white">{value}</p>
           {trend && (
-            <p className="mt-1 text-xs text-accent-400">{trend}</p>
+            <p className="mt-1.5 text-xs font-medium text-accent-400">{trend}</p>
           )}
         </div>
         {icon && (
-          <div className="w-12 h-12 rounded-lg bg-primary-600/20 flex items-center justify-center text-primary-400">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary-300/20 bg-primary-500/10 text-primary-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-primary-300/40 group-hover:text-primary-200">
             {icon}
           </div>
         )}
@@ -67,9 +67,11 @@ export function Button({
   disabled?: boolean;
 }) {
   const variants = {
-    primary: "bg-primary-600 hover:bg-primary-700 text-white",
-    secondary: "bg-slate-800 hover:bg-slate-700 text-white",
-    ghost: "hover:bg-slate-800 text-slate-300",
+    primary:
+      "bg-primary-500 hover:bg-primary-400 text-slate-950 shadow-lg shadow-primary-500/20 border border-primary-300/20",
+    secondary:
+      "bg-white/[0.06] hover:bg-white/[0.1] text-white border border-white/10",
+    ghost: "hover:bg-white/[0.06] text-slate-300 hover:text-white",
   };
 
   return (
@@ -78,7 +80,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       className={clsx(
-        "px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+        "px-4 py-2.5 rounded-xl text-sm font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed",
         variants[variant],
         className
       )}
@@ -105,7 +107,7 @@ export function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-300 mb-1.5">
+      <label className="mb-1.5 block text-sm font-medium text-slate-300">
         {label}
       </label>
       <input
@@ -114,7 +116,7 @@ export function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full px-3.5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+        className="w-full rounded-xl border border-white/10 bg-black/20 px-3.5 py-2.5 text-white placeholder-slate-500 transition-colors focus:border-primary-400/50 focus:bg-black/30 focus:outline-none focus:ring-2 focus:ring-primary-400/30"
       />
     </div>
   );

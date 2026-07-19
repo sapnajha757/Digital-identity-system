@@ -26,17 +26,22 @@ export default function Sidebar() {
     <aside
       className={`${
         collapsed ? "w-16" : "w-60"
-      } shrink-0 border-r border-slate-800 bg-slate-900 flex flex-col transition-all duration-200`}
+      } flex shrink-0 flex-col border-r border-white/[0.08] bg-slate-950/40 backdrop-blur-xl transition-all duration-200`}
     >
-      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
+      <div className="flex h-16 items-center justify-between border-b border-white/[0.08] px-3">
         {!collapsed && (
-          <Link href="/dashboard" className="font-display text-lg font-bold text-white">
-            DI Platform
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary-300/25 bg-gradient-to-br from-white/16 to-primary-300/10 text-sm font-semibold text-primary-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+              ID
+            </span>
+            <span className="truncate font-display text-base font-semibold text-white">
+              DI Platform
+            </span>
           </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"
           aria-label="Toggle sidebar"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,10 +58,10 @@ export default function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                     active
-                      ? "bg-primary-600 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                      ? "border border-primary-300/25 bg-primary-500/15 text-primary-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      : "border border-transparent text-slate-400 hover:bg-white/[0.06] hover:text-white"
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
@@ -71,11 +76,11 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-slate-800 p-2">
+      <div className="border-t border-white/[0.08] p-2">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ${
-            pathname === "/settings" ? "bg-slate-800 text-white" : ""
+          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-white/[0.06] hover:text-white ${
+            pathname === "/settings" ? "bg-white/[0.06] text-white" : ""
           }`}
           title={collapsed ? "Settings" : undefined}
         >
@@ -87,7 +92,7 @@ export default function Sidebar() {
         </Link>
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-error-400 hover:bg-slate-800 transition-colors"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-error-500/10 hover:text-error-400"
           title={collapsed ? "Sign Out" : undefined}
         >
           <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
